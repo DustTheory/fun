@@ -1,0 +1,4 @@
+#!/bin/bash
+g++ first.cpp `pkg-config --libs --cflags libusb-1.0` -o first
+sudo ./first
+
