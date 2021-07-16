@@ -1,0 +1,153 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Fourier convergence</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+    <h2>
+    Fourier series approximation to
+    \( f(t) = e^{1/\pi^2 - 1/[ t ( 2 \pi - t ) ]} \)
+    over \( ( 0 , 2 \pi ) \)
+    </h2>
+    </h2>
+    <br>
+    \( \log_{10}( \text{max error} ) \text{vs} \log_{10}( n ) \)
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script src=../linear_algebra/Complex.js></script>
+    <script language="javascript">
+
+      function f( t ) {
+        if ( t <= 0 || t >= 2 * Math.PI ) return 0;
+        return Math.exp( 1 / Math.pow( Math.PI, 2 )
+          - 1 / ( t * ( 2 * Math.PI - t ) ) );
+      }
+      function fft( m, c ) {
+//      adapted from Cooley, Lewis and Welch,
+//      IEEE transactions E-12 no 1 (March 1965)
+        var j = 1;
+        var ndiv2 = Math.pow( 2, m - 1 );
+        var n = 2 * ndiv2;
+        for ( var i = 1; i < n; i ++ ) {
+          if ( i < j ) {
+            var temp =
+              new Complex( c[ j - 1 ].getReal(), c[ j - 1 ].getImag() );
+            c[ j - 1 ].setValue( c[ i - 1 ] );
+            c[ i - 1 ].setValue( temp );
+          }
+          var k = ndiv2;
+          while (k < j ) {
+            j -= k;
+            k /= 2;
+          }
+          j += k;
+        }
+        for ( var l = 1; l <= m; l ++ ) {
+          var twolm1 = Math.pow( 2, l - 1 );
+          var twol = 2 * twolm1;
+          var u = new Complex( 1, 0 );
+          var theta = Math.PI / twolm1;
+          var z = new Complex( Math.cos( theta ), Math.sin( theta ) );
+          for ( var j = 1; j <= twolm1; j ++ ) {
+            for ( var i = j; i <= n; i += twol ) {
+              var p = i + twolm1;
+              var temp = ComplexMath.times( c[ p - 1 ], u );
+              c[ p - 1 ] = ComplexMath.minus( c[ i - 1 ] , temp );
+              c[ i - 1 ].plusEquals( temp );
+            }
+            u.timesEquals( z );
+          }
+        }
+      }
+      function inverseFft( m, c ) {
+        fft( m, c );
+        var ndiv2 = Math.pow( 2, m - 1 );
+        var n = 2 * ndiv2;
+        for ( var i = 1; i < ndiv2; i ++ ) {
+          temp = new Complex( c[ i ].getReal(), c[ i ].getImag() );
+          c[ i ] .setValue( c[ n - i ] );
+          c[ n - i ] .setValue( temp );
+        }
+        var ninv = 1 / n ;
+        for ( var i = 0; i < n; i ++ ) c[ i ].timesNumberEquals( ninv );
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var fourier_canvas = document.getElementById("fourier_canvas");
+
+        var log_error = new Array( 12 );
+        var log_n = new Array( 12 );
+        var bign = Math.pow( 2, log_n.length + 1 );
+        var nn = 2;
+        var ymin = 0;
+        var ymax = -16;
+        for ( var mm = 1; mm <= log_n.length; mm ++, nn *= 2 ) {
+          c = new Array( nn );
+          var dt = 2 * Math.PI / nn;
+          for ( var i = 0; i < nn; i ++ ) {
+            c[ i ] = new Complex( f( i * dt ), 0 ); 
+          }
+          inverseFft( mm, c );
+
+          var bigc = new Array( bign );
+          for ( var i = 0; i < bign; i ++ ) bigc[ i ] = new Complex( 0, 0 );
+          bigc[ 0 ] = new Complex( c[ 0 ].getReal(), c[ 0 ].getImag() );
+          for ( var i = 1; i < nn / 2; i ++ ) {
+            bigc[ i ] = new Complex( c[ i ].getReal(), c[ i ].getImag() );
+            bigc[ bign - i ] =
+              new Complex( c[ nn - i ].getReal(), c[ nn - i ].getImag() );
+          }
+          fft( log_n.length + 1, bigc );
+          var dt = 2 * Math.PI / bign;
+          var errmax = 0;
+          for ( var i = 0; i < bign; i ++ ) {
+            var t = i * dt;
+            var y = f( t );
+            errmax =
+              Math.max( errmax, Math.abs( y - bigc[ i ].getReal() ) );
+          }
+          log_error[ mm - 1 ] = Math.log( errmax ) * Math.LOG10E;
+          log_n[ mm - 1 ] = Math.log( nn ) * Math.LOG10E;
+          ymin = Math.min( ymin, log_error[ mm - 1 ] );
+          ymax = Math.max( ymax, log_error[ mm - 1 ] );
+        }
+        gt = new XYGraphTool( fourier_canvas, "log(error) vs log(n)",
+          "log_10(n)", "log_10(error)",
+          log_n[ 0 ], log_n[ log_n.length - 1 ], ymin, ymax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( log_n[ 0 ], log_error[ 0 ] );
+          for ( var i = 1; i < log_n.length; i ++ ) {
+            gt.drawLine( log_n[ i ], log_error[ i ] );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+    </script>
+    <canvas id="fourier_canvas" width="512" height="512">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

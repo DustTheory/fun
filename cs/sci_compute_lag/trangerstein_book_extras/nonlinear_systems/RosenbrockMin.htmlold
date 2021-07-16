@@ -1,0 +1,392 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Rosenbrock minimization </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+    <script src=../plotting/glMatrix-0.9.5.min.js></script>
+    <script src=../plotting/VolGraphTool.js></script>
+    <script src=../plotting/AreaGraphTool.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script src=../plotting/Colormap.js></script>
+    <script src=../plotting/Palette.js></script>
+    <script src=../linear_algebra/Complex.js></script>
+    <script type="text/javascript">
+      function ff( x, y ) {
+        var a=10*(y-x*x);
+        var b=1-x;
+        return 0.5 * ( a * a + b * b );
+      }
+      function webGLStart() {
+        var slow = [ -1, -1 ];
+        var shigh = [ 1, 1 ];
+        var sncell = [ 10, 10 ];
+        var sp = new Palette();
+        var gt4 = new VolGraphTool(
+          document.getElementById("surface_canvas"),
+          "volgraphtool test", sp );
+        gt4.draw2DFunction( f, slow, shigh, sncell );
+      }
+      
+    </script>
+  </HEAD>
+  <BODY onload="webGLStart();">
+    <h2>
+      Rosenbrock's function
+      \( f(x,y) = \frac{1}{2} \left\|
+        \begin{bmatrix} 10 (y-x^2) \\ 1-x \end{bmatrix} \right\|_2^2 \)
+    </h2>
+    <script language="javascript">
+      var soln = undefined;
+      var gt = undefined;
+      var gt2 = undefined;
+      var gt3 = undefined;
+      var gt4 = undefined;
+      var cm = undefined;
+      var nc = [ 100, 100 ];
+      var low = [ -2, -2 ];
+      var high = [ 2, 2 ];
+      var roundoff = undefined;
+      var sqrtrnd = undefined;
+      var npts = 500;
+//    Goldstein-Armijo Principle:
+      var alpha = .01;
+      var beta = .5;
+
+      function f( x, y ) {
+        var a=10*(y-x*x);
+        var b=1-x;
+        return 0.5 * ( a * a + b * b );
+      }
+      function gf( x, y ) { // gradient of f
+        var a=10*(y-x*x);
+        var b=1-x;
+        return new Array( -20 * x * a - b, 10 * a );
+      }
+      function Hf( x, y ) { // Hessian of f
+        var a=10*(y-x*x);
+        var b=1-x;
+        return new Array( -20 * a + 400 * x * x + 1, - 200 * x,
+                         -200 * x, 100 );
+      }
+      function choldecomp( A, maxoffl ) {
+        var minl = maxoffl * Math.sqrt( sqrtrnd );
+        if ( maxoff <= 0 ) {
+          maxoffl = Math.max( Math.abs( A[ 0 ] ), Math.abs( A[ 3 ] ) );
+        }
+        var minl2 = maxoffl * sqrtrnd;
+        var mu = 0;
+
+        var minlkk = Math.max(
+          Math.max( Math.abs( A[0] ), Math.abs( A[1] ) ) / maxoffl, minl );
+        if ( A[0] > minlkk ) A[0] = Math.sqrt( A[0] );
+        else {
+          minlkk = Math.max( minlkk, minl2 );
+          mu = math.max( mu, minlkk * minlkk - A[0] );
+          A[0] = minlkk;
+        }
+        A[1] /= A[0];
+        A[3] = A[3] - A[1] * A[1];
+
+        minlkk = Math.max( Math.abs( A[3] ) / maxoffl, minl );
+        if ( A[3] > minlkk ) A[3] = Math.sqrt( A[3] );
+        else {
+          minlkk = Math.max( minlkk, minl2 );
+          mu = math.max( mu, minlkk * minlkk - A[3] );
+          A[3] = minlkk;
+        }
+        return mu;
+      }
+      function modelhess( A ) {
+        var sqrtrnd = Math.sqrt( roundoff );
+        var maxdiag = Math.max( Math.abs( A[ 0 ] ), Math.abs( A[ 3 ] ) );
+        var mindiag = Math.min( Math.abs( A[ 0 ] ), Math.abs( A[ 3 ] ) );
+        var maxposdiag = Math.max( 0, maxdiag );
+        var mu = 0;
+        if ( mindiag <= sqrtrnd * maxposdiag ) {
+          mu = 2 * ( maxposdiag * mindiag ) * sqrtrnd - mindiag;
+          maxdiag += mu;
+        }
+        var k = -1;
+        var maxA = 0.;
+        for ( var i = 0; i < 4; i ++ ) {
+          var absA = Math.abs( A[ i ] );
+          if ( absA > maxA ) {
+            k = i;
+            maxA = absA;
+          }
+        }
+        var maxoff = Math.abs( A[ k ] );
+        if ( maxoff * ( 1 + 2 * sqrtrnd ) > maxdiag ) {
+          mu += ( maxoff - maxdiag) + 2 * sqrtrnd * maxoff;
+          maxdiag = maxoff * ( 1 + 2 * sqrtrnd );
+        }
+        if ( maxdiag <= 0 ) {
+          mu = 1;
+          maxdiag = 1;
+        }
+        if ( mu > 0 ) {
+          A[ 0 ] += mu;
+          A[ 3 ] += mu;
+        }
+        maxoffl = Math.sqrt( Math.max( maxdiag, maxoff / n ) );
+        var maxadd = choldecomp( A, maxoffl );
+        if ( maxadd > 0 ) {
+          var maxev = A[0];
+          var minev = A[0];
+          var offrow = Math.abs( A[1] );
+          maxev = Math.max( maxev, A[0] + offrow );
+          minev = Math.min( maxin, A[0] - offrow );
+          maxev = Math.max( maxev, A[3] + offrow );
+          minev = Math.min( maxin, A[3] - offrow );
+          var sdd = ( maxev - minev ) * sqrtrnd - minev;
+          sdd = Math.max( sdd, 0 );
+          mu = math.min( maxadd, sdd );
+          A[0] += mu;
+          A[3] += mu;
+        }
+        maxadd = choldecomp( A, maxoffl );
+      }
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        roundoff = 1;
+        while ( 1 - roundoff < 1 ) roundoff *= 0.5;
+        roundoff *=2.
+        sqrtrnd = Math.sqrt( roundoff );
+
+        var p = new Palette();
+        cm = new Colormap( p );
+        gt = new AreaGraphTool(
+          document.getElementById("contour_canvas"),"contour test",
+          "x", "y ", low, high, cm );
+        gt.setBgColor();
+        gt.newPage();
+        gt.setFgColor( );
+        gt.drawAxes();
+        gt.contourFunction( f, nc, 30 );
+        gt.mouseUp = firstIteration;
+        gt.watchMouse();
+        gt.listen();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+
+      function firstIteration( e ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering firstIteration\n";
+        soln = new Array( gt.mouse_coords[0], gt.mouse_coords[1] ); 
+        var fval = f( soln[0], soln[1] );
+        var gfval = gf( soln[0], soln[1] );
+        var steepest_descent = new Array( - gfval[0], - gfval[1] );
+
+        var Hfval = Hf( soln[0], soln[1] );
+        var det = Hfval[ 0 ] * Hfval[ 3 ] - Hfval[ 1 ] * Hfval[ 2 ];
+        var newton = new Array( 
+          ( Hfval[ 2 ] * gfval[ 1 ] - Hfval[ 3 ] * gfval[ 0 ] ) / det,
+          ( Hfval[ 1 ] * gfval[ 0 ] - Hfval[ 0 ] * gfval[ 1 ] ) / det );
+
+        var len0 = ( steepest_descent[ 0 ] > 0 ?
+          ( high[ 0 ] - soln[ 0 ] ) / steepest_descent[ 0 ] :
+          ( soln[ 0 ] - low[ 0 ] ) / ( - steepest_descent[ 0 ] ) );
+        var len1 = ( steepest_descent[ 1 ] > 0 ?
+          ( high[ 1 ] - soln[ 1 ] ) / steepest_descent[ 1 ] :
+          ( soln[ 1 ] - low[ 1 ] ) / ( - steepest_descent[ 1 ] ) );
+        var len = Math.min( len0, len1 );
+        gt.setFgColor(1); // red
+        gt.beginDrawing();
+          gt.movePen( soln );
+          gt.drawLine( [ soln[ 0 ] + steepest_descent[ 0 ] * len,
+                         soln[ 1 ] + steepest_descent[ 1 ] * len ] );
+        gt.endDrawing();
+        var ylo = Number.MAX_VALUE;
+        var yhi = -Number.MAX_VALUE;
+        var ds = len / npts;
+        var s = 0;
+        for ( var i = 0; i <= npts; i ++, s += ds ) {
+          var fnew = f( soln[ 0 ] + steepest_descent[ 0 ] * s,
+                        soln[ 1 ] + steepest_descent[ 1 ] * s );
+          ylo = Math.min( ylo, fnew );
+          yhi = Math.max( yhi, fnew );
+        }
+        gt2 = new XYGraphTool(
+          document.getElementById("steepest_descent_canvas"),
+          "steepest descent test", "x", "y ", 0, len,
+          ylo - fval, yhi - fval );
+        gt2.setBgColor( "white" );
+        gt2.newPage();
+        gt2.setFgColor( "black" );
+        gt2.drawAxes();
+        gt2.setFgColor( "red"  );
+        gt2.beginDrawing();
+          gt2.movePen( 0, 0 );
+          s = 0;
+          for ( var i = 0; i <= npts; i ++, s += ds ) {
+            var fnew = f( soln[ 0 ] + steepest_descent[ 0 ] * s,
+                          soln[ 1 ] + steepest_descent[ 1 ] * s );
+            gt2.drawLine( s, fnew - fval );
+          }
+        gt2.endDrawing();
+        var dot = gfval[ 0 ] * steepest_descent[ 0 ]
+                + gfval[ 1 ] * steepest_descent[ 1 ];
+        gt2.setFgColor( "blue" );
+        gt2.beginDrawing();
+          gt2.movePen( 0, 0 );
+          gt2.drawLine( gt2.user_xhi, alpha * dot * gt2.user_xhi ); 
+        gt2.endDrawing();
+        gt2.setFgColor( "yellow" );
+        gt2.beginDrawing();
+          gt2.movePen( 0, 0 );
+          gt2.drawLine( gt2.user_xhi, beta * dot * gt2.user_xhi ); 
+        gt2.endDrawing();
+//      var sbeta = -1;
+//      s = 0;
+//      for ( var i = 0; i <= npts; i ++, s += ds ) {
+//        var gfi = gf( soln[0] + steepest_descent[0] * s,
+//                      soln[1] + steepest_descent[1] * s );
+//        var doti = gfi[ 0 ] * steepest_descent[ 0 ]
+//                 + gfi[ 1 ] * steepest_descent[ 1 ];
+//        if ( doti >= beta * dot ) {
+//          sbeta = s;
+//          break;
+//        }
+//      }
+//      if ( sbeta > 0 ) {
+//        gt2.setFgColor( "yellow"  );
+//        slope = ( f( soln[0] + steepest_descent[0] * sbeta,
+//                     soln[1] + steepest_descent[1] * sbeta ) - fval )
+//              / sbeta;
+//        gt2.beginDrawing();
+//          gt2.movePen( 0, 0 );
+//          gt2.drawLine( gt2.user_xhi, slope * gt2.user_xhi ); 
+//        gt2.endDrawing();
+//      }
+
+        len0 = ( newton[ 0 ] > 0 ?
+          ( high[ 0 ] - soln[ 0 ] ) / newton[ 0 ] :
+          ( soln[ 0 ] - low[ 0 ] ) / ( - newton[ 0 ] ) );
+        len1 = ( newton[ 1 ] > 0 ?
+          ( high[ 1 ] - soln[ 1 ] ) / newton[ 1 ] :
+          ( soln[ 1 ] - low[ 1 ] ) / ( - newton[ 1 ] ) );
+        len = Math.min( len0, len1 );
+        gt.setFgColor(.5); // green
+        gt.beginDrawing();
+          gt.movePen( soln );
+          gt.drawLine( [ soln[ 0 ] + newton[ 0 ] * len,
+                         soln[ 1 ] + newton[ 1 ] * len ] );
+        gt.endDrawing();
+        ylo = Number.MAX_VALUE;
+        yhi = -Number.MAX_VALUE;
+        ds = len / npts;
+        s = 0;
+        for ( var i = 0; i <= npts; i ++, s += ds ) {
+          var fnew = f( soln[ 0 ] + newton[ 0 ] * s,
+                        soln[ 1 ] + newton[ 1 ] * s );
+          ylo = Math.min( ylo, fnew );
+          yhi = Math.max( yhi, fnew );
+        }
+        gt3 = new XYGraphTool(
+          document.getElementById("newton_canvas"),
+          "newton test", "x", "y ", 0, len, ylo - fval, yhi - fval );
+        gt3.setBgColor( "white" );
+        gt3.newPage();
+        gt3.setFgColor( "black" );
+        gt3.drawAxes();
+        gt3.setFgColor( "green"  );
+        gt3.beginDrawing();
+          gt3.movePen( 0, 0 );
+          s = 0;
+          for ( var i = 0; i <= npts; i ++, s += ds ) {
+            var fnew = f( soln[ 0 ] + newton[ 0 ] * s,
+                          soln[ 1 ] + newton[ 1 ] * s );
+            gt3.drawLine( s, fnew - fval );
+          }
+        gt3.endDrawing();
+        var dot = gfval[ 0 ] * newton[ 0 ]
+                + gfval[ 1 ] * newton[ 1 ];
+        gt3.setFgColor( "blue" );
+        gt3.beginDrawing();
+          gt3.movePen( 0, 0 );
+          gt3.drawLine( gt3.user_xhi, alpha * dot * gt3.user_xhi ); 
+        gt3.endDrawing();
+        gt3.setFgColor( "yellow" );
+        gt3.beginDrawing();
+          gt3.movePen( 0, 0 );
+          gt3.drawLine( gt3.user_xhi, beta * dot * gt3.user_xhi ); 
+        gt3.endDrawing();
+//      var sbeta = -1;
+//      s = 0;
+//      for ( var i = 0; i <= npts; i ++, s += ds ) {
+//        var gfi = gf( soln[0] + newton[0] * s,
+//                      soln[1] + newton[1] * s );
+//        var doti = gfi[ 0 ] * newton[ 0 ]
+//                 + gfi[ 1 ] * newton[ 1 ];
+//        if ( doti >= beta * dot ) {
+//          sbeta = s;
+//          break;
+//        }
+//      }
+//      if ( sbeta > 0 ) {
+//        gt3.setFgColor( "yellow"  );
+//        slope = ( f( soln[0] + newton[0] * sbeta,
+//                     soln[1] + newton[1] * sbeta ) - fval )
+//              / sbeta;
+//        gt3.beginDrawing();
+//          gt3.movePen( 0, 0 );
+//          gt3.drawLine( gt3.user_xhi, slope * gt3.user_xhi ); 
+//        gt3.endDrawing();
+//      }
+
+//      document.getElementById("debug_textarea").value +=
+//        "leaving firstNewtonIteration\n";
+      }
+    </script>
+    <canvas id="contour_canvas" width="400" height="400">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <canvas id="surface_canvas" width="400" height="400">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Click mouse in contour plot to select initial guess for iteration
+    <br>
+    Steepest descent direction in red, Newton in green
+    <br>
+    <canvas id="steepest_descent_canvas" width="400" height="200">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <canvas id="newton_canvas" width="400" height="200">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Line searches along the steepest descent direction (left plot) and
+    Newton direction (right plot)
+    <br>
+    Objective function in red (steepest descent) or green (Newton)
+    <br>
+    Goldstein-Armijo principle in blue and yellow
+    <br>
+    <input
+      type="button"
+      value="Choose a different initial guess"
+      onclick="onStart();"
+    >
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

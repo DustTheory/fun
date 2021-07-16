@@ -1,0 +1,384 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>adaptive quadrature</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    quadrature
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var type = 0;
+      var a = 0;
+      var b = 1;
+      var len = 1;
+      var tolerance = 0.1;
+      var gt;
+      var nf;
+      function f(x) { 
+        switch (type) {
+          case 1:
+            return Math.exp( 2 * x ) * Math.sin( 3 * x );
+          case 2:
+            return Math.exp( 3 * x ) * Math.sin( 2 * x );
+          case 3:
+            return 2 * x * Math.cos( 2 * x ) - Math.pow( x - 2, 2 );
+          case 4:
+            return 4 * x * Math.cos( 2 * x ) - Math.pow( x - 2, 2 );
+          case 5:
+            return Math.sin( 1 / x );
+          case 6:
+            return Math.cos( 1 / x );
+          case 7:
+            return Math.sqrt( x );
+          case 8:
+            return Math.sqrt( 1 - x );
+          case 9:
+            return ( x < 1 ? Math.exp( Math.log(1-x) *.25 ) : 0 );
+          case 0:
+          default:
+            return Math.exp( x );
+        }
+      }
+      function lower_bound() {
+        switch ( type ) {
+          case 1:
+          case 2:
+            return 1;
+          case 5:
+          case 6:
+            return 0.1;
+          case 0:
+          case 3:
+          case 4:
+          case 7:
+          case 8:
+          case 9:
+          default:
+            return 0;
+        }
+      }
+      function upper_bound() {
+        switch ( type ) {
+          case 1:
+          case 2:
+            return 3;
+          case 3:
+          case 4:
+            return 5;
+          case 5:
+          case 6:
+            return 2;
+          case 0:
+          case 7:
+          case 8:
+          case 9:
+          default:
+            return 1;
+        }
+      }
+      function f_lower_bound() {
+        switch ( type ) {
+          case 1:
+            return - 30;
+          case 2:
+            return - 3000;
+          case 3:
+            return -19;
+          case 4:
+            return -29;
+          case 5:
+          case 6:
+            return -1;
+          case 7:
+          case 8:
+          case 9:
+            return 0;
+          case 0:
+          default:
+            return 0;
+        }
+      }
+      function f_upper_bound() {
+        switch ( type ) {
+          case 1:
+            return 250;
+          case 2:
+            return 1000;
+          case 3:
+            return 10;
+          case 4:
+            return 29;
+          case 5:
+          case 6:
+            return 1;
+          case 7:
+          case 8:
+          case 9:
+            return 1;
+          case 0:
+          default:
+            return Math.exp( 1 );
+        }
+      }
+      function exact() {
+        switch ( type ) {
+          case 1:
+            return 108.5552812121216;
+          case 2:
+            return -1724.9669830093546;
+          case 3:
+            return -15.30630798565105;
+          case 4:
+            return -18.94594930463687;
+          case 5:
+            return 1.1455808340994897;
+          case 6:
+            return 0.6738321005126195;
+          case 7:
+          case 8:
+            return 2 / 3;
+          case 9:
+            return .8;
+          case 0:
+          default:
+            return Math.exp(1) - 1;
+        }
+      }
+      function adapt( xlo, xhi, flo, fhi, abs_integral ) {
+        var xlen = xhi - xlo;
+        var trapezoidal = 0.5 * xlen * ( fhi + flo );
+        var xmid = 0.5 * ( xhi + xlo );
+        var fmid = f ( xmid );
+        nf ++;
+        gt.movePen( xmid, 0 );
+        gt.drawLine( xmid, fmid );
+        var midpoint = xlen * fmid;
+        var error = 2 * Math.abs( midpoint - trapezoidal ) / 3;
+        if ( error <= abs_integral * tolerance * xlen / len ) {
+          abs_integral += 0.25 * xlen * ( 2 * Math.abs( fmid )
+            - Math.abs( flo ) - Math.abs( fhi ) );
+          return ( trapezoidal + 2 * midpoint ) / 3; // simpson
+        }
+        return adapt( xlo, xmid, flo, fmid, abs_integral )
+             + adapt( xmid, xhi, fmid, fhi, abs_integral );
+      }
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var radio_buttons =
+          document.getElementsByName("fcn_radiobox");
+        for ( var i = 0; i < radio_buttons.length; i ++ ) {
+          if ( radio_buttons[ i ].checked ) {
+            type = Number( radio_buttons[ i ].value );
+            break;
+          }
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "type = " + type + "\n";
+        tolerance = 0.1;
+        a = lower_bound();
+        b = upper_bound();
+        len = b - a;
+        var fa = f( a );
+        var fb = f( b );
+        nf = 2;
+
+        var plot_canvas = document.getElementById("plot_canvas");
+        gt = new XYGraphTool( plot_canvas, "integrand",
+          "x", "f", a, b, f_lower_bound(), f_upper_bound() );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+          var w = plot_canvas.width;
+          var dx = len / w;
+          gt.movePen( a, fa );
+          for ( var i = 1; i <= w; i ++ ) {
+            var x = a + i * dx;
+            gt.drawLine( x, f( x ) );
+          }
+        gt.endDrawing();
+
+        var abs_integral = 0.5 * len * ( Math.abs( fa ) + Math.abs( fb ) );
+
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( a, 0 );
+          gt.drawLine( a, fa );
+          gt.movePen( b, 0 );
+          gt.drawLine( b, fb );
+          result = adapt( a, b, fa, fb, abs_integral ); 
+        gt.endDrawing();
+        var error = Math.abs( result - exact() );
+        document.getElementById("debug_textarea").value =
+          "tolerance,result,error,nf = " + tolerance + " " + result + " "
+          + error + " " + nf + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function improve() {
+        tolerance *= 0.1;
+
+        var plot_canvas = document.getElementById("plot_canvas");
+        gt = new XYGraphTool( plot_canvas, "integrand",
+          "x", "f", a, b, f_lower_bound(), f_upper_bound() );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+          var w = plot_canvas.width;
+          var dx = len / w;
+          gt.movePen( a, f( a ) );
+          for ( var i = 1; i <= w; i ++ ) {
+            var x = a + i * dx;
+            gt.drawLine( x, f( x ) );
+          }
+        gt.endDrawing();
+
+        var fa = f( a );
+        var fb = f( b );
+        var abs_integral = 0.5 * len * ( Math.abs( fa ) + Math.abs( fb ) );
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( a, 0 );
+          gt.drawLine( a, fa );
+          gt.movePen( b, 0 );
+          gt.drawLine( b, fb );
+          result = adapt( a, b, fa, fb, abs_integral ); 
+        gt.endDrawing();
+        var error = Math.abs( result - exact() );
+        document.getElementById("debug_textarea").value =
+          "tolerance,result,error,nf = " + tolerance + " " + result + " "
+          + error + " " + nf + "\n";
+      }
+    </script>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <fieldset>
+      <legend> Select integrand: </legend>
+      <label for="option0">
+        <input
+          type="radio"
+          checked value="0"
+          id="checkbox0"
+          name="fcn_radiobox"
+        />
+        exp(x)
+      </label>
+      <label for="option1">
+        <input
+          type="radio"
+          value="1"
+          id="checkbox1"
+          name="fcn_radiobox"
+        />
+        exp(2x)sin(3x)
+      </label>
+      <label for="option2">
+        <input
+          type="radio"
+          value="2"
+          id="checkbox2"
+          name="fcn_radiobox"
+        />
+        exp(3x)sin(2x)
+      </label>
+      <label for="option3">
+        <input
+          type="radio"
+          value="3"
+          id="checkbox3"
+          name="fcn_radiobox"
+        />
+        2xcos(2x)-(x-2)^2
+      </label>
+      <label for="option4">
+        <input
+          type="radio"
+          value="4"
+          id="checkbox4"
+          name="fcn_radiobox"
+        />
+        4xcos(2x)-(x-2)^2
+      </label>
+      <label for="option5">
+        <input
+          type="radio"
+          value="5"
+          id="checkbox5"
+          name="fcn_radiobox"
+        />
+        sin(1/x)
+      </label>
+      <label for="option6">
+        <input
+          type="radio"
+          value="6"
+          id="checkbox6"
+          name="fcn_radiobox"
+        />
+        cos(1/x)
+      </label>
+      <label for="option7">
+        <input
+          type="radio"
+          value="7"
+          id="checkbox7"
+          name="fcn_radiobox"
+        />
+        sqrt(x)
+      </label>
+      <label for="option8">
+        <input
+          type="radio"
+          value="8"
+          id="checkbox8"
+          name="fcn_radiobox"
+        />
+        sqrt(1-x)
+      </label>
+      <label for="option9">
+        <input
+          type="radio"
+          value="9"
+          id="checkbox9"
+          name="fcn_radiobox"
+        />
+        exp(log(1-x)/4)
+      </label>
+    </fieldset>
+    <br>
+    <input
+      type="button"
+      value="Begin new refinement study"
+      onclick="onStart();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Decrease tolerance by factor of 10"
+      onclick="improve();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

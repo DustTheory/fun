@@ -1,0 +1,14 @@
+\begin{html}
+  <iframe
+    src="code/approximation/bspline.html"
+    width=900
+    height=500
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/approximation/bspline.html">bspline.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

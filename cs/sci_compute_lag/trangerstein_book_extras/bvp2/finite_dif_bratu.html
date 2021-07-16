@@ -1,0 +1,238 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Finite Difference Method for Bratu Problem</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    Finite difference method for
+    \( u^{\prime\prime}(x) + \lambda e^{u(x)} = 0 \;,
+    u(0) = 0 = u(1) \)
+    <br>
+    analytical solution in blue, numerical solution in red
+    <script src=../linear_algebra/Complex.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      function cosh( x ) { return ( Math.exp(x) + Math.exp(-x) ) * 0.5; }
+      function sinh( x ) { return ( Math.exp(x) - Math.exp(-x) ) * 0.5; }
+      function fcn0( alpha ) {
+        return cosh( alpha ) / sinh( alpha ) - alpha;
+      }
+      function fcn0deriv( alpha ) {
+        return - Math.pow( cosh( alpha ) / sinh( alpha ), 2 )
+      }
+      function solveFcn0( ) {
+        var alpha = 1;
+        for ( var i = 0; i < 10; i ++ ) {
+          var f = fcn0( alpha );
+          var fprime = fcn0deriv( alpha );
+          alpha = alpha - f / fprime;
+          if ( Math.abs( f ) <= 1.e-14 * alpha * Math.abs( fprime ) ) break;
+        }
+        return alpha;
+      }
+      function fcn1( theta, lambda ) {
+        return Math.sqrt( 2 * lambda ) * cosh( theta ) - 4 * theta;
+      }
+      function fcn1deriv( theta, lambda ) {
+        return Math.sqrt( 2 * lambda ) * sinh( theta ) - 4;
+      }
+      function solveFcn1( lambda ) {
+        var theta = 0;
+        for ( var i = 0; i < 10; i ++ ) {
+          var f = fcn1( theta, lambda );
+          var fprime = fcn1deriv( theta, lambda );
+          theta = theta - f / fprime;
+          if ( Math.abs( f ) <= 1.e-14 * theta * Math.abs( fprime ) ) break;
+        }
+        return theta;
+      }
+      function exact( x, theta ) {
+        return - 2 * Math.log( cosh( ( 2 * x - 1 ) * theta )
+          / cosh( theta ) );
+      }
+      function plotSolution( u, nelem, theta ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotSolution\n";
+        plot_canvas = document.getElementById("plot_canvas");
+        var umax = 0;
+        var umin = 0;
+        var uexact = new Array( nelem - 1 );
+        var h = 1 / nelem;
+        var x = h;
+        for ( var i = 0; i < nelem - 1; i ++, x += h ) {
+          umax = Math.max( umax, u[ i ] );
+          umin = Math.min( umin, u[ i ] );
+          uexact[ i ] = exact( x, theta );
+          umax = Math.max( umax, uexact[i] );
+          umin = Math.min( umin, uexact[i] );
+        }
+        gt = new XYGraphTool( plot_canvas,"finite difference solution vs x",
+          "x", "u", 0, 1, umin, umax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( 0, 0 );
+          x = h;
+          for ( var i = 0; i < nelem - 1; i ++, x += h ) {
+            gt.drawLine( x, u[ i ] );
+          }
+          gt.drawLine( x, 0 );
+        gt.endDrawing();
+        if ( lambda < lambda_crit ) {
+          gt.setFgColor( "blue" );
+          gt.beginDrawing();
+            gt.movePen( 0, 0 );
+            x = h;
+            for ( var i = 0; i < nelem - 1; i ++, x += h ) {
+              gt.drawLine( x, uexact[ i ] );
+            }
+            gt.drawLine( x, 0 );
+          gt.endDrawing();
+        }
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotSolution\n";
+        return u;
+      }
+
+      var nelem=8;
+      var lambda = 1;
+      var lambda_crit = Number.MAX_VALUE;
+      var theta = Number.MAX_VALUE;
+      var u;
+      var f;
+      var sub_diag;
+      var diag;
+      var sup_diag;
+      var iteration = 0;
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+
+        iteration = 0;
+
+        var alpha = solveFcn0();
+        lambda_crit = 8 * ( alpha * alpha - 1 );
+        document.getElementById("debug_textarea").value =
+          "lambda_crit = " + lambda_crit + "\n";
+
+        lambda = Number( document.getElementById('lambda_textarea').value );
+//      lambda = Math.min( lambda, lambda_crit );
+
+        if ( lambda < lambda_crit ) {
+          theta = solveFcn1( lambda );
+        } else {
+          document.getElementById("debug_textarea").value +=
+            "lambda = " + lambda + " > lambda_crit = " + lambda_crit + "\n";
+        }
+
+        nelem = Number( document.getElementById('nelem').value );
+        u = new Array( nelem - 1 );
+        f = new Array( nelem - 1 );
+        sub_diag = new Array( nelem - 1 );
+        diag = new Array( nelem - 1 );
+        sup_diag = new Array( nelem - 1 );
+
+        var h = 1 / nelem;
+        var hl = - h * lambda;
+        for ( var i = 0; i < nelem - 1; i ++ ) {
+          u[ i ] = 0.;
+          f[ i ] = hl;
+        }
+
+        plotSolution( u, nelem, theta )
+
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function improveSolution() {
+        var h = 1 / nelem;
+        var hl = - h * lambda;
+        for ( var i = 0; i < nelem - 1; i ++ ) {
+          diag[ i ] = 2 / h + hl * Math.exp( u[ i ] );
+        }
+        var off_diag = - 1 / h;
+        for ( var i = 0; i < nelem - 2; i ++ ) {
+          sub_diag[ i + 1 ] = off_diag;
+          sup_diag[ i ] = off_diag;
+        }
+        for ( var i = 2; i < nelem - 1; i ++ ) {
+          sub_diag[ i ] /= diag[ i - 1 ];
+          f[ i ] -= sub_diag[ i ] * f[ i - 1 ];
+          diag[ i ] -= sub_diag[ i ] * sup_diag[ i - 1 ];
+        }
+        f[ nelem - 2 ] /= diag[ nelem - 2 ];
+        u[ nelem - 2 ] -= f[ nelem - 2 ];
+        for ( var i = nelem - 3; i >= 0; i -- ) {
+          f[ i ] = ( f[ i ] - sup_diag[ i ] * f[ i + 1 ] ) / diag[ i ];
+          u[ i ] -= f[ i ];
+        }
+        plotSolution( u, nelem, theta )
+        f[ 0 ] = 2 * u[ 0 ] / h + hl * Math.exp( u[ 0 ] ) 
+               - u[ 1 ] / h;
+        for ( var i = 1; i < nelem - 2; i ++ ) {
+          f[ i ] = - u[ i - 1 ] / h
+                 + 2 * u[ i ] / h + hl * Math.exp( u[ i ] ) 
+                 - u[ i + 1 ] / h;
+        }
+        f[ nelem - 2 ] = - u[ nelem - 3 ] / h
+               + 2 * u[ nelem - 2 ] / h + hl * Math.exp( u[ nelem - 2 ] ); 
+        iteration ++;
+      }
+    </script>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+<!--
+    <canvas id="fcn_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+-->
+    <br>
+    lambda:
+    <input
+      type = "text"
+      name = "lambda"
+      value = "1"
+      size = 30
+      id = lambda_textarea
+    >
+    <br>
+    nelem:
+    <input
+      type = "text"
+      name = "nelem"
+      value = "4"
+      size = 30
+      id = nelem
+    >
+    <br>
+    <input
+      type="button"
+      value="click to start over with new lambda or number elements"
+      onclick="onStart();"
+    >
+    <input
+      type="button"
+      value="click to iterate"
+      onclick="improveSolution();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

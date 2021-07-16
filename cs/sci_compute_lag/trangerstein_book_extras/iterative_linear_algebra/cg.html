@@ -1,0 +1,211 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Conjugate Gradient Iteration in 1D </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Conjugate Gradient Iteration in 1D </h2>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+    var p = undefined;
+    var r = undefined;
+    var x = undefined;
+    var z = undefined;
+    var x_exact = undefined;
+    var rowstart = undefined;
+    var colnums = undefined;
+    var values = undefined;
+    var n = undefined;
+    var gamma = undefined;
+    var gt = undefined;
+    var it = undefined;
+
+    function plot() {
+      gt.newPage();
+      gt.setFgColor( "black" );
+      gt.drawBoundingBox();
+      gt.drawAxes();
+      gt.setFgColor( "red" );
+      var h = 0.5 / n;
+      var dx = 1. / ( n + 1 );
+      gt.beginDrawing();
+        gt.movePen( h, x_exact[ 0 ] );
+        gt.drawLine( 1. - h, x_exact[ n - 1 ] );
+      gt.endDrawing();
+      gt.setFgColor( "blue" );
+      gt.beginDrawing();
+        gt.movePen( h, x[ 0 ] );
+        for ( var i = 1; i < n; i ++ ) {
+          gt.drawLine( h + i / n, x[ i ] );
+        }
+      gt.endDrawing();
+    }
+    function iterate() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering iterate, gamma = " + gamma + "\n";
+      var alpha = 0.;
+      for ( var i = 0; i < n; i ++ ) {
+        var zi = 0.;
+        for ( var k = rowstart[ i ]; k < rowstart[ i + 1]; k ++ ) {
+          var j = colnums[ k ];
+          zi += values[ k ] * p[ j ];
+        }
+        z[ i ] = zi;
+        alpha += p[ i ] * zi;
+//      document.getElementById("debug_textarea").value +=
+//        "i,z = " + i + " " + z[ i ] + "\n";
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "gamma,alpha = " + gamma + " " + alpha + "\n";
+      alpha = gamma / alpha;
+//    document.getElementById("debug_textarea").value +=
+//      "alpha = " + alpha + "\n";
+      var delta = 0.;
+      var errmax = 0.;
+      var rmax = 0.;
+      for ( var i = 0; i < n; i ++ ) {
+        x[ i ] += p[ i ] * alpha;
+        r[ i ] -= z[ i ] * alpha;
+        delta += r[ i ] * r[ i ];
+        errmax = Math.max( errmax, Math.abs( x[ i ] - x_exact[ i ] ) );
+        rmax = Math.max( rmax, Math.abs( r[ i ] ) );
+//      document.getElementById("debug_textarea").value +=
+//        "i,x,r = " + i + " " + x[ i ] + " " + r[ i ] + "\n";
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "delta,gamma = " + delta + " " + gamma + "\n";
+      var delgam = delta / gamma;
+//    document.getElementById("debug_textarea").value +=
+//      "delgam = " + delgam + "\n";
+      for ( var i = 0; i < n; i ++ ) {
+        p[ i ] = r[ i ] + p[ i ] * delgam;
+//      document.getElementById("debug_textarea").value +=
+//        "i,p = " + i + " " + p[ i ] + "\n";
+      }
+      gamma = delta;
+
+      plot();
+      it ++;
+      document.getElementById("debug_textarea").value =
+        "iteration number = " + it + "\n";
+      document.getElementById("debug_textarea").value +=
+        "max residual = " + rmax + "\n";
+      document.getElementById("debug_textarea").value +=
+        "max error = " + errmax + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "leaving iterate\n";
+    }
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      it = 0;
+      n = Math.max( 8,
+        Math.floor( document.getElementsByName('n_text')[0].value ) );
+      x = new Array( n );
+      for ( var i = 0; i < x.length; i ++ ) {
+        x[ i ] = Math.random();
+      }
+      var dx = 1. / ( n + 1 );
+      x_exact = new Array( n );
+      for ( var j = 0; j < n; j ++ ) {
+        x_exact[ j ] = ( n - j ) * dx;
+      }
+//    sparse matrix storage with diagonal first
+      rowstart = new Array( n + 1 );
+      colnums = new Array();
+      values = new Array();
+      var i = 0;
+      rowstart[ i ] = 0;
+      values.push(  2. ); colnums.push( i );
+      values.push( -1. ); colnums.push( i + 1 );
+      for ( i = 1; i < n - 1; i ++ ) {
+        rowstart[ i ] = colnums.length;
+        values.push(  2. ); colnums.push( i );
+        values.push( -1. ); colnums.push( i - 1 );
+        values.push( -1. ); colnums.push( i + 1 );
+      }
+      i = n - 1;
+      rowstart[ i ] = colnums.length;
+      values.push(  2. ); colnums.push( i );
+      values.push( -1. ); colnums.push( i - 1 );
+      rowstart[ n ] = colnums.length;
+
+      p = new Array( n );
+      r = new Array( n );
+      z = new Array( n );
+      gamma = 0.;
+      for ( var i = 0; i < n; i ++ ) {
+        var ri = ( i == 0 ? 1. : 0. );
+        for ( var k = rowstart[ i ]; k < rowstart[ i + 1]; k ++ ) {
+          var j = colnums[ k ];
+          ri -= values[ k ] * x[ j ];
+        }
+        r[ i ] = ri;
+        p[ i ] = ri;
+        gamma += ri * ri;
+//      document.getElementById("debug_textarea").value +=
+//        "i,x,r,p = " + i + " " + x[ i ] + " " + r[ i ] + " " + p[ i ] 
+//        + "\n";
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "gamma = " + gamma + "\n";
+
+      gt = new XYGraphTool( document.getElementById("cg_canvas"),
+        "cg iteration", "i", "x", 0., 1., 0., 1. );
+      gt.setBgColor( "white" );
+      plot();
+//    document.getElementById("debug_textarea").value =
+//      "iteration number = " + it + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    n :
+    <input
+      type="text"
+      name="n_text"
+      value="8"
+      onchange="checkNumber(document.getElementsByName('n_text')[0].value);"
+      size="3"
+    >
+    <br>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="onStart();"
+    >
+    <br>
+    <canvas id="cg_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=50
+      rows=4
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

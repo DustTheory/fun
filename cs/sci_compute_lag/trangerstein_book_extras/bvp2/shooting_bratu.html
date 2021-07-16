@@ -1,0 +1,274 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Shooting Method for Bratu Problem</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    Shooting method for \( u^{\prime\prime}(x) + \lambda e^{u(x)} = 0 \;,
+    u(0) = 0 = u(1) \)
+    <br>
+    <script src=../linear_algebra/Complex.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      function cosh( x ) { return ( Math.exp(x) + Math.exp(-x) ) * 0.5; }
+      function sinh( x ) { return ( Math.exp(x) - Math.exp(-x) ) * 0.5; }
+      function fcn0( alpha ) {
+        return cosh( alpha ) / sinh( alpha ) - alpha;
+      }
+      function fcn0deriv( alpha ) {
+        return - Math.pow( cosh( alpha ) / sinh( alpha ), 2 )
+      }
+      function solveFcn0( ) {
+        var alpha = 1;
+        for ( var i = 0; i < 10; i ++ ) {
+          var f = fcn0( alpha );
+          var fprime = fcn0deriv( alpha );
+          alpha = alpha - f / fprime;
+          if ( Math.abs( f ) <= 1.e-14 * alpha * Math.abs( fprime ) ) break;
+        }
+        return alpha;
+      }
+      function fcn1( theta, lambda ) {
+        return Math.sqrt( 2 * lambda ) * cosh( theta ) - 4 * theta;
+      }
+      function fcn1deriv( theta, lambda ) {
+        return Math.sqrt( 2 * lambda ) * sinh( theta ) - 4;
+      }
+      function solveFcn1( lambda ) {
+        var theta = 0;
+        for ( var i = 0; i < 10; i ++ ) {
+          var f = fcn1( theta, lambda );
+          var fprime = fcn1deriv( theta, lambda );
+          theta = theta - f / fprime;
+          if ( Math.abs( f ) <= 1.e-14 * theta * Math.abs( fprime ) ) break;
+        }
+        return theta;
+      }
+      function exact( x, theta ) {
+        return - 2 * Math.log( cosh( ( 2 * x - 1 ) * theta )
+          / cosh( theta ) );
+      }
+      function euler( slope, lambda, nsteps ) {
+        var u = 0;
+        var uprime = slope;
+        var h = 1 / nsteps;
+        for ( var i = 0; i < nsteps; i ++ ) {
+          var unew = u + h * uprime;
+          uprime = uprime - h * lambda * Math.exp( u );
+          u = unew;
+        }
+        return u;
+      }
+      function plotObjective( slope, lambda, nsteps ) {
+        fcn_canvas = document.getElementById("fcn_canvas");
+        var omax = -Number.MAX_VALUE;
+        var omin = Number.MAX_VALUE;
+        var fudge = 4;
+        var nplot = 256;
+        var ds = fudge * slope / nplot;
+        var sarray = new Array( nplot + 1 );
+        var oarray = new Array( nplot + 1 );
+        var s = 0;
+        for ( var i = 0; i <= nplot; i ++, s += ds ) {
+          var objective = euler( s, lambda, nsteps );
+          sarray[ i ] = s;
+          oarray[ i ] = objective;
+          omax = Math.max( omax, objective );
+          omin = Math.min( omin, objective );
+        }
+        fgt = new XYGraphTool( fcn_canvas, "shooting objective vs slope",
+          "slope", "objective", 0, fudge * slope, omin, omax );
+        fgt.setBgColor( "white" );
+        fgt.newPage();
+        fgt.setFgColor( "green" );
+        fgt.beginDrawing();
+          fgt.movePen( sarray[ 0 ], oarray[ 0 ] );
+          for ( var i = 1; i <= nplot; i ++ ) {
+            fgt.drawLine( sarray[ i ], oarray[ i ] );
+          }
+        fgt.endDrawing();
+        fgt.setFgColor( "black" );
+        fgt.drawAxes();
+      }
+      function plotEuler( slope, lambda, nsteps, theta ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotEuler\n";
+//      document.getElementById("debug_textarea").value +=
+//        "slope, lambda, nsteps, theta = " + slope + " " + lambda + " "
+//        + nsteps + " " + theta + "\n";
+        plot_canvas = document.getElementById("plot_canvas");
+        var uarray = new Array( nsteps + 1 );
+        var umax = -Number.MAX_VALUE;
+        var umin = Number.MAX_VALUE;
+        var u = 0;
+        var uprime = slope;
+//      document.getElementById("debug_textarea").value +=
+//        "i,u,uprime = 0 " + u + " " + uprime + "\n";
+        var h = 1 / nsteps;
+        uarray[ 0 ] = u;
+        umax = Math.max( umax, u );
+        umin = Math.min( umin, u );
+        var x = h;
+        for ( var i = 1; i <= nsteps; i ++, x += h ) {
+          var unew = u + h * uprime;
+          uprime = uprime - h * lambda * Math.exp( u );
+          u = unew;
+//        document.getElementById("debug_textarea").value +=
+//          "i,u,uprime = " + i + " " + u + " " + uprime + "\n";
+          uarray[ i ] = u;
+          umax = Math.max( umax, u );
+          umin = Math.min( umin, u );
+          var uexact = exact( x, theta );
+          umax = Math.max( umax, uexact );
+          umin = Math.min( umin, uexact );
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "umin,umax = " + umin + " " + umax + "\n";
+        gt = new XYGraphTool( plot_canvas, "euler solution vs x",
+          "x", "u", 0, 1, umin, umax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( 0, uarray[ 0 ] );
+          x = h;
+          for ( var i = 1; i <= nsteps; i ++, x += h ) {
+            gt.drawLine( x, uarray[ i ] );
+          }
+        gt.endDrawing();
+        if ( lambda <= lambda_crit ) {
+          gt.setFgColor( "blue" );
+          gt.beginDrawing();
+            gt.movePen( 0, 0 );
+            x = h;
+            for ( var i = 1; i <= nsteps; i ++, x += h ) {
+              gt.drawLine( x, exact( x, theta ) );
+            }
+          gt.endDrawing();
+        }
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+//      document.getElementById("debug_textarea").value +=
+//        "u = " + u + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotEuler\n";
+        return u;
+      }
+
+      var nsteps=8;
+      var lambda = 1;
+      var slope = 1;
+      var objective = Number.MAX_VALUE;
+      var slope_old = 0;
+      var objective_old = Number.MAX_VALUE;
+      var lambda_crit = Number.MAX_VALUE;
+      var theta = Number.MAX_VALUE;
+      var iteration = 0;
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+
+        iteration = 0;
+
+        var alpha = solveFcn0();
+        lambda_crit = 8 * ( alpha * alpha - 1 );
+        document.getElementById("debug_textarea").value =
+          "lambda_crit = " + lambda_crit + "\n";
+
+        lambda = Number( document.getElementById('lambda_textarea').value );
+//      lambda = Math.min( lambda, lambda_crit );
+
+        if ( lambda <= lambda_crit ) {
+          theta = solveFcn1( lambda );
+          var true_slope=exact( 1.e-7, theta ) / 1.e-7;
+          document.getElementById("debug_textarea").value +=
+            "lambda,true_slope = " + lambda + " " + true_slope + "\n";
+//        document.getElementById("debug_textarea").value +=
+//          "lambda,theta = " + lambda + " " + theta + "\n";
+        } else {
+          document.getElementById("debug_textarea").value +=
+            "lambda = " + lambda + " > lambda_crit = " + lambda_crit + "\n";
+        }
+
+        nsteps = Number( document.getElementById('nsteps_textarea').value );
+        objective_old = plotEuler( slope_old, lambda, nsteps, theta )
+        document.getElementById("debug_textarea").value +=
+          "slope,objective = " + slope_old + " " + objective_old + "\n";
+
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function adjustSlope() {
+        if ( iteration <= 0 ) {
+          slope = Number( document.getElementById('slope_textarea').value );
+          plotObjective( slope, lambda, nsteps );
+        }
+        objective = plotEuler( slope, lambda, nsteps, theta )
+        document.getElementById("debug_textarea").value =
+          "slope,objective = " + slope + " " + objective + "\n";
+        slope -= ( slope - slope_old ) * objective
+               / ( objective - objective_old );
+        iteration ++;
+      }
+    </script>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <canvas id="fcn_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    lambda:
+    <input
+      type = "text"
+      name = "lambda"
+      value = "1"
+      size = 30
+      id = lambda_textarea
+    >
+    <br>
+    nsteps:
+    <input
+      type = "text"
+      name = "nsteps"
+      value = "4"
+      size = 30
+      id = nsteps_textarea
+    >
+    <br>
+    slope:
+    <input
+      type = "text"
+      name = "slope"
+      value = "1"
+      size = 30
+      id = slope_textarea
+    >
+    <br>
+    <input
+      type="button"
+      value="click to start over with new lambda or nsteps"
+      onclick="onStart();"
+    >
+    <input
+      type="button"
+      value="click to try new slope"
+      onclick="adjustSlope();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

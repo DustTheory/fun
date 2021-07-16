@@ -1,0 +1,390 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>twice continuously differenttiable spline approximation to runge
+      function</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+    twice continuously differentiable spline for runge function
+    </h2>
+    <br>
+    \( \log_{10}( \text{max error} ) \text{vs} \log_{10}( \text{number elements} ) \)
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var farray = new Array();
+      var fparray = new Array();
+      var fpparray = new Array();
+      var fmidpoint = new Number();
+      var nodes = new Array(); // mesh nodes
+      var xipts = new Array(); // canonical interpolation points
+      var n = 1;
+      var m = 3;
+      var w = 1;
+      var equally_spaced_interpolation_points = true;
+
+      function f( x ) { return 1 / ( 1 + 25 * x * x ); }
+      function fprime( x ) { 
+        return - 50 * x / Math.pow( 1 + 25 * x * x, 2 );
+      }
+      function fprimeprime( x ) { 
+        return 50 * ( 75 * x * x - 1 ) / Math.pow( 1 + 25 * x * x, 3 );
+      }
+//    function f(x) { return Math.pow( (x+1)*.5, 3 ); }
+//    function fprime(x) { return 1.5*Math.pow( (x+1)*.5, 2); }
+
+      function computeNodes( ) {
+        nodes = new Array( n + 1 );
+        var dx = 2 / n;
+        nodes[ 0 ] = -1;
+        for ( var i = 1; i < n; i ++ ) nodes[ i ] = i * dx - 1;
+        nodes[ n ] = 1;
+      }
+      function computeInterpolationPoints( ) {
+        if ( m < 5 ) return;
+        xipts = new Array( m - 3 );
+        xipts[ 0 ] = 0;
+        if ( equally_spaced_interpolation_points ) {
+          var dxi = 1 / ( m - 4 );
+          for ( var j = 1; j < m - 4; j ++ ) xipts[ j ] = j * dxi;
+        } else {
+          for ( var j = 1; j < m - 4; j ++ ) xipts[ j ] =
+            Math.pow( Math.sin( ( 2 * j - 1 ) * Math.PI / ( 4 * m - 12 ) ),
+                      2 );
+        }
+        xipts[ m - 4 ] = 1;
+      }
+      function computeFunctionValues( i ) {
+        if ( m == 3 ) {
+          return;
+        } else if ( m == 4 ) {
+          farray = new Array( 2 );
+          farray[ 0 ] = f( nodes[ i - 1 ] );
+          farray[ 1 ] = f( nodes[ i ] );
+          fparray = new Array( 2 );
+          fparray[ 0 ] = fprime( nodes[ i - 1 ] );
+          fparray[ 1 ] = fprime( nodes[ i ] );
+          return;
+        }
+        farray = new Array( m - 3 );
+        hi = nodes[ i ] - nodes[ i - 1 ];
+        for ( var j = 0; j <= m - 4; j ++ ) {
+          x = nodes[ i - 1 ] + xipts[ j ] * hi;
+          farray[ j ] = f( x );
+        }
+        fparray = new Array( 2 );
+        fparray[ 0 ] = fprime( nodes[ i - 1 ] );
+        fparray[ 1 ] = fprime( nodes[ i ] );
+        fpparray = new Array( 2 );
+        fpparray[ 0 ] = fprimeprime( nodes[ i - 1 ] );
+        fpparray[ 1 ] = fprimeprime( nodes[ i ] );
+      }
+      function computeSplineSlopes() {
+        if ( m == 3 ) {
+          var np1 = n + 1;
+          var matrix = new Array( 3 * np1 );
+          for ( var i = 1; i <= n; i ++ ) {
+            matrix[ i ] = nodes[ i ] - nodes[ i - 1 ];
+            matrix[ 2 * np1 + i - 1 ] = matrix[ i ];
+          }
+          matrix[ np1 ] = 2 * matrix[ 1 ];
+          for ( var i = 1; i < n; i ++ ) {
+            matrix[ np1 + i ] = 2 * ( matrix[ i ] + matrix[ 2 * np1 + i ] );
+          }
+          matrix[ np1 + n ] = 2 * matrix[ n ];
+          farray = new Array( np1 );
+          for ( var i = 0; i <= n; i ++ ) farray[ i ] = f( nodes[ i ] );
+          fpparray = new Array( np1 );
+          var divdifi = ( farray[ 1 ] - farray[ 0 ] )
+                  / ( nodes[ 1 ] - nodes[ 0 ] );
+          fpparray[ 0 ] = 6 * ( divdifi - fprime( nodes[ 0 ] ) );
+          for ( var i = 1; i < n; i ++ ) {
+            var divdif = ( farray[ i + 1 ] - farray[ i ] )
+                   / ( nodes[ i + 1 ] - nodes[ i ] );
+            fpparray[ i ] = 6 * ( divdif - divdifi );
+            divdifi = divdif;
+          }
+          fpparray[ n ] = 6 * ( fprime( nodes[ n ] ) - divdifi );
+          for ( var i = 1; i <= n; i ++ ) {
+            matrix[ i ] /= matrix[ n + i ];
+            matrix[ np1 + i ] -= matrix[ i ] * matrix[ 2 * np1 + i - 1 ];
+            fpparray[ i ] -= matrix[ i ] * fpparray[ i - 1 ];
+          }
+          fpparray[ n ] /= matrix[ 2 * n + 1 ];
+          for ( var i = n - 1; i >= 0; i -- ) {
+            fpparray[ i ] = ( fpparray[ i ]
+              - matrix[ 2 * np1 + i ] * fpparray[ i + 1 ] )
+              / matrix[ np1 + i ];
+          }
+        } else if ( m == 4 ) {
+          var h = nodes[ 1 ] - nodes[ 0 ];
+          fmidpoint = f( nodes[ 0 ] ) * 11 / 16 
+            + f( nodes[ 1 ] ) * 5 / 16
+            + ( fprime( nodes[ 0 ] ) / 4
+              - fprime( nodes[ 1 ] ) / 16
+              + fprimeprime( nodes[ 0 ] ) * h / 32  ) * h;
+        }
+      }
+      function updateFMidpoint( i ) {
+        if ( m != 4 ) return;
+        var fip1 = f( nodes[ i + 1 ] ); 
+        var fpip1 = fprime( nodes[ i + 1 ] ); 
+        var ho = nodes[ i ] - nodes[ i - 1 ];
+        var hn = nodes[ i + 1 ] - nodes[ i ];
+        fmidpoint = farray[ 1 ] * 11 / 16
+          + fip1 * 5 / 16
+          + ( fparray[ 1 ] / 4 - fpip1 / 16 ) * hn
+          + ( ( fmidpoint - farray[ 0 ] * 5 / 16 - farray[ 1 ] * 11 / 16 )
+              * hn / ho
+            + ( fparray[ 1 ] / 4 - fparray[ 0 ] / 16 ) * hn ) * hn / ho;
+      }
+      function c2SplinePolynomial( i, xi ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering c2SplinePolynomial\n";
+        var h = nodes[ i ] - nodes[ i - 1 ];
+        if ( m == 3 ) {
+          var sum = farray[ i - 1 ] * ( 1 - xi ) + farray[ i ] * xi
+            - ( fpparray[ i - 1 ] * ( 2 - xi )
+              + fpparray[ i ] * ( 1 + xi ) ) * xi * ( 1 - xi )
+              * Math.pow( h, 2 ) / 6;
+        } else if ( m == 4 ) {
+          sum = ( farray[ 0 ] * ( 1 + 4 * xi ) + fparray[ 0 ] * h * xi )
+                *( 1 - 2 * xi ) * ( 1 - xi ) * ( 1 - xi )
+            + ( farray[ 1 ] * ( 5 - 4 * xi )
+              - fparray[ 1 ] * h * ( 1 - xi ) )
+            *( 2 * xi - 1 ) * xi * xi
+            + 16 * fmidpoint * xi * xi * ( 1 - xi ) * ( 1 - xi );
+        } else {
+//        document.getElementById("debug_textarea").value +=
+//          "m,i,xi = " + m + " " + i + " " + xi + "\n";
+          sumxipts = 0;
+          for ( var j = 1; j < m - 4; j ++ ) sumxipts += 1 / xipts[ j ];
+          sumsumxipts = 0;
+          for ( var j = 1; j < m - 4; j ++ ) {
+            t = 0;
+            for ( var k = 1; k < m - 4; k ++ ) {
+              if ( k != j ) t += 1 / xipts[ k ];
+            }
+            sumsumxipts += t / xipts[ j ];
+          }
+//        document.getElementById("debug_textarea").value +=
+//          "sumxipts = " + sumxipts + " " + sumsumxipts + "\n";
+          var prod = 1;
+          for ( j = 1; j < m - 4; j ++ ) prod *= 1 - xi / xipts[ j ];
+          var b0 = prod * ( 1 + xi * ( 3 + sumxipts
+            + xi * ( 6 + sumxipts * ( 3 +  sumxipts ) ) ) )
+            * Math.pow( 1 - xi , 3 );
+          var b1 = prod * xi * ( 1 + xi * ( 3 + sumxipts ) )
+            * Math.pow( 1 - xi , 3 );
+          var b2 = 0.5 * prod * xi * xi * Math.pow( 1 - xi , 3 );
+//        document.getElementById("debug_textarea").value +=
+//          "prod,b0,b1,b2 = " + prod + " " + b0 + " " + b1 + " " + b2
+//          + "\n";
+          sum = farray[ 0 ] * b0 + ( fparray[ 0 ] * b1
+            + fpparray[ 0 ] * b2 * h ) * h;
+//        document.getElementById("debug_textarea").value +=
+//          "sum = " + sum + "\n";
+
+          prod = 1;
+          for ( var j = 1; j < m - 4; j ++ ) {
+            prod *= ( xi - xipts[ j ] ) / ( 1 - xipts[ j ] );
+          }
+          b0 = prod * ( 1 + ( 1 - xi ) * ( 3 + sumxipts 
+            + (1 - xi ) * ( 6 + sumxipts * ( 3 +  sumxipts ) ) ) )
+            * Math.pow( xi, 3 );
+          b1 = - prod * ( 1 - xi ) * ( 1 + ( 3 + sumxipts ) * ( 1 - xi ) )
+            * Math.pow( xi, 3 );
+          b2 = 0.5 * prod * ( 1 - xi ) * ( 1 - xi )
+            * Math.pow( xi, 3 );
+//        document.getElementById("debug_textarea").value +=
+//          "prod,b0,b1,b2 = " + prod + " " + b0 + " " + b1 + " " + b2
+//          + "\n";
+          sum += farray[ m - 4 ] * b0 + fparray[ 1 ] * h * b1
+            + fpparray[ 1 ] * h * h * b2;;
+//        document.getElementById("debug_textarea").value +=
+//          "sum = " + sum + "\n";
+          for ( var j = 1; j < m - 4; j ++ ) {
+            prod = farray[ j ] * Math.pow( xi * ( 1 - xi )
+              / ( xipts[ j ] * ( 1 - xipts[ j ] ) ), 3 );
+//          document.getElementById("debug_textarea").value +=
+//            "j,farray,prod = " + j + " " + farray[ j ] + " " + prod
+//            + "\n";
+            for ( var k = 1; k < j; k ++ ) {
+              prod *= ( xi - xipts[ k ] ) / ( xipts[ j ] - xipts[ k ] );
+//            document.getElementById("debug_textarea").value +=
+//              "k,prod = " + k + " " + prod + "\n";
+            }
+            for ( k = j+1; k < m - 4; k ++ ) {
+              prod *= ( xi - xipts[ k ] ) / ( xipts[ j ] - xipts[ k ] );
+//            document.getElementById("debug_textarea").value +=
+//              "k,prod = " + k + " " + prod + "\n";
+            }
+            sum += prod;
+//          document.getElementById("debug_textarea").value +=
+//            "j,prod,sum = " + j + " " + prod + " " + sum + "\n";
+          }
+        }
+        return sum;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving c2SplinePolynomial\n";
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        interpolate_canvas = document.getElementById("interpolate_canvas");
+        w = interpolate_canvas.width;
+//      w = 4;
+        m = Number( document.getElementById('m_textarea').value );
+        computeInterpolationPoints();
+        xarray = new Array();
+        yarray = new Array();
+        var ymax = -Number.MAX_VALUE;
+        var ymin = Number.MAX_VALUE;
+        var kk = 0;
+        for ( n = 1; n <= 256; n *= 2, kk ++ ) {
+          computeNodes();
+          computeSplineSlopes();
+          var maxerr = 0;
+          for ( var ii = 1; ii <= n; ii ++ ) {
+            computeFunctionValues( ii );
+            var hi = nodes[ ii ] - nodes[ ii - 1 ];
+            var dw = w * hi * .5;
+            for ( var jj = 0; jj <= dw; jj ++ ) {
+              var xi = jj / dw;
+              var spline = c2SplinePolynomial( ii, xi );
+              maxerr = Math.max( maxerr,
+                Math.abs( spline - f( nodes[ ii - 1 ] + hi * xi ) ) );
+            }
+            updateFMidpoint( ii );
+          }
+//        document.getElementById("debug_textarea").value +=
+//          "k,maxerr = " + kk + " " + maxerr + "\n";
+          if ( maxerr < Number.MIN_VALUE ) break;
+          xarray[ kk ] = Math.log( n ) * Math.LOG10E;
+          yarray[ kk ] = Math.log( maxerr ) * Math.LOG10E;
+          ymax = Math.max( ymax, yarray[ kk ] );
+          ymin = Math.min( ymin, yarray[ kk ] );
+        }
+        gt = new XYGraphTool( interpolate_canvas, "interpolation error",
+          "log_10(n)", "log_10(error)",
+          xarray[ 0 ], xarray[ xarray.length-1 ], ymin, ymax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], yarray[ 0 ] );
+          for ( var k = 0; k < xarray.length; k ++ ) {
+            gt.drawLine( xarray[ k ], yarray[ k ] );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function plotCase() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotCase\n";
+        n = Number( document.getElementById('n_textarea').value );
+        m = Number( document.getElementById('m_textarea').value );
+        equally_spaced_interpolation_points = document.getElementsByName(
+          'equally_spaced_interpolation_points_radiobox')[0].checked;
+//      document.getElementById("debug_textarea").value +=
+//        "m,n = " + m + " " + n + "\n";
+        if ( n < 1 ) return;
+        if ( m < 3 ) return;
+        computeNodes();
+        computeInterpolationPoints();
+        computeSplineSlopes();
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( -1, f(-1) );
+          for ( var k = 0; k <= w; k ++ ) {
+            var x = 2 * k / w - 1;
+            gt.drawLine( x, f(x) );
+          }
+        gt.endDrawing();
+
+//      w = 4;
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+        for ( var ii = 1; ii <= n; ii ++ ) {
+          computeFunctionValues( ii );
+          var dw = w * ( nodes[ ii ] - nodes[ ii - 1 ] ) * .5;
+          var hi = nodes[ ii ] - nodes[ ii - 1 ];
+          var spline = c2SplinePolynomial( ii, 0 );
+          gt.movePen( nodes[ ii - 1 ], spline );
+          for ( var jj = 0; jj <= dw; jj ++ ) {
+            var xi = jj / dw;
+            var spline = c2SplinePolynomial( ii, xi );
+            gt.drawLine( nodes[ ii - 1 ] + xi * hi, spline );
+          }
+          updateFMidpoint( ii );
+        }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotCase\n";
+      }
+    </script>
+    <canvas id="interpolate_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Enter piecewise polynomial degree:
+    <input
+      type="text"
+      name="m"
+      value="3"
+      size="1"
+      id="m_textarea"
+    >
+    <br>
+    <fieldset>
+      <legend> Kind of element interpolation points: </legend>
+      <label for="equally_spaced_interpolation_points_checkbox">
+        <input
+          type="radio"
+          checked value="true"
+          id="equally_spaced_interpolation_points_checkbox"
+          name="equally_spaced_interpolation_points_radiobox"
+        />
+        uniformly spaced
+      </label>
+      <label for="optimally_spaced_interpolation_points_checkbox">
+        <input
+          type="radio"
+          value="false"
+          id="optimally_spaced_interpolation_points_checkbox"
+          name="equally_spaced_interpolation_points_radiobox"
+        />
+        optimally spaced
+      </label>
+    </fieldset>
+    <br>
+    <input
+      type="button"
+      value="Plot spline approximation error"
+      onclick="onStart();"
+    >
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

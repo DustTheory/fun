@@ -1,0 +1,5 @@
+Linear algebra and scientific computing basics:
+    Scientific computing Vol.1 Trangenstein
+
+
+Computer architecture suggestion from "Scientific computing Vol.1 Trangenstein": Computer Organization and Design: The Hardware/Software Interface

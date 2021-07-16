@@ -1,0 +1,191 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Simulated Annealing </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript"> 
+      function f(a) { 
+//      document.getElementById("debug_textarea").value +=
+//        "entering f\n";
+        var sum = 0.;
+        var m = a.length / 3;
+        for ( var i = 0; i < m - 1; i ++ ) {
+          for ( var j = i + 1; j < m; j ++ ) {
+            var dist = Math.pow( a[ i * 3 ] - a[ j * 3 ], 2 )
+                     + Math.pow( a[ 1 + i * 3 ] - a[ 1 + j * 3 ], 2 )
+                     + Math.pow( a[ 2 + i * 3 ] - a[ 2 + j * 3 ], 2 );
+            var t = Math.pow( dist, -6 ) - Math.pow( dist, -3 );
+//          document.getElementById("debug_textarea").value +=
+//            "dist[" + i + "," + j + "] = " + dist + " t = " + t + "\n";
+            sum += Math.pow( dist, -6 ) - Math.pow( dist, -3 );
+          }
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "leaving f, sum = " + sum + "\n";
+        return sum;
+      }
+      var A = 0.1;
+      var B = 2.0;
+      var len = B - A;
+      var flen = 1.;
+      var atoms = 2;
+      var x = new Array( 3 * atoms );
+      var xnew = new Array( 3 * atoms );
+      var x_best = new Array( 3 * atoms );
+      var n = undefined;
+      var nmod = undefined;
+      var fx = undefined;
+      var f_best = undefined;
+
+      function onStart() {
+        atoms=document.getElementsByName('atoms')[0].value;
+        n = 2 * atoms;
+        nmod = ( atoms == 2 ? 1 : 3 * atoms - 6 );
+        simulatedAnnealing();
+      }
+
+      function simulatedAnnealing() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering simulatedAnnealing\n";
+        if ( atoms < 2 ) return;
+        if ( n <= 2 * atoms ) { // first call
+          for ( var a = 0; a < atoms; a ++ ) {
+            for ( var j = 0; j < 3; j ++ ) {
+              x[ j + 3 * a ] = A + Math.random() * len;
+            }
+          }
+          for ( var j = 0; j < 3; j ++ ) x[ j ] = 0.;// first atom at origin
+          for ( var j = 1; j < 3; j ++ ) {
+            x[ j + 3 ] = 0.; // second atom on first axis
+          }
+          if ( atoms >= 3 ) {
+            x[ 2 + 6 ] = 0.; // third atom in 0-1 plane 
+          }
+          fx = f( x );
+          for ( var k = 0; k < 3 * atoms; k ++ ) x_best[ k ] = x[ k ];
+          f_best = f( x );
+/*
+          x[ 3 ] = Math.pow( 2., 1. / 6. );
+          if ( atoms >= 3 ) {
+            x[ 6 ] = x[ 3 ] * 0.5;
+            x[ 7 ] = x[ 3 ] * Math.sqrt( 0.75 );
+          }
+          if ( atoms >= 4 ) {
+            x[ 9 ] = x[ 3 ] * 0.5;
+            x[ 10 ] = x[ 3 ] / Math.sqrt( 12. );
+            x[ 11 ] = x[ 3 ] * Math.sqrt( 2. / 3. );
+          }
+*/
+        }
+        for ( var i = 0; i < n; i ++ ) {
+//        var temperature = 1. / ( 1 + i );
+          var temperature = Math.exp( - i / 100. );
+          for ( var k = 0; k < 3 * atoms; k ++ ) xnew[ k ] = x[ k ];
+          var j = i % nmod;
+          if ( j == 0 ) {
+            xnew[ 3 ] = Math.max( A, Math.min( B,
+              x[ 3 ] + len * ( Math.random() - 0.5 ) ) );
+          } else if ( j <= 2 ) {
+            xnew[ 5 + j ] = Math.max( A, Math.min( B,
+              x[ 5 + j ] + len * ( Math.random() - 0.5 ) ) );
+          } else {
+            xnew[ 6 + j ] = Math.max( A, Math.min( B,
+              x[ 6 + j ] + len * ( Math.random() - 0.5 ) ) );
+          }
+          var fnew = f( xnew );
+//        document.getElementById("debug_textarea").value +=
+//          "i,j,xnew,fnew = " + i + " " + j + " " + xnew + " " + fnew
+//          + "\n";
+          var df = ( fx - fnew ) / flen;
+          if ( df > 0 ) {
+            for ( var k = 0; k < 3 * atoms; k ++ ) x[ k ] = xnew[ k ];
+            fx = fnew;
+          } else if ( Math.exp( -df / temperature ) > Math.random() ) {
+            for ( var k = 0; k < 3 * atoms; k ++ ) x[ k ] = xnew[ k ];
+            fx = fnew;
+          }
+          if ( fnew < f_best ) {
+            for ( var k = 0; k < 3 * atoms; k ++ ) x_best[ k ] = x[ k ];
+            f_best = fnew;
+          }
+        }
+        document.getElementById("debug_textarea").value =
+          "number annealing steps,energy = " + n + " " + f_best + "\n";
+        for ( var a = 0; a < atoms; a ++ ) {
+          document.getElementById("debug_textarea").value += 
+            "atom[ " + a + "] = ";
+          for ( var j = 0; j < 3; j ++ ) {
+            var xja = x_best[ j + 3 * a ];
+            document.getElementById("debug_textarea").value += xja + " ";
+          }
+          document.getElementById("debug_textarea").value += "\n";
+        }
+        
+        n += n;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving simulatedAnnealing\n";
+      }
+      function checkNumber(n) {
+        if (!isFinite(n)) {
+          alert("entered value is not a NUMBER");
+          return false;
+        }
+        return true;
+      }
+    </script>
+  </HEAD>
+  <BODY>
+    <h2>
+      Simulated Annealing to minimize
+      \( \sum_{i=0}^{n-2} \sum_{j=i+1}^{n-1} \left\{
+          \| {\bf x}_i - {\bf x}_j \|_2^{-12}
+        - \| {\bf x}_i - {\bf x}_j \|_2^{-6} \right\}
+      \)
+    </h2>
+<!--
+    <br>
+    <canvas id="function_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <canvas id="error_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+-->
+    <br>
+    number of atoms
+    <input
+      type="number"
+      name=atoms
+      value=2
+      onchange="checkNumber(document.getElementsByName('tol')[0].value);onStart();"
+      size=4
+    >
+    <br>
+    <input
+      type="button"
+      value="double the sample size"
+      onclick="simulatedAnnealing();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Start Over"
+      onclick="onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>
+<html><head></head><body></body></html>

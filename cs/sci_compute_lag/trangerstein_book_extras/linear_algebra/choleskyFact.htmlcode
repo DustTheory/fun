@@ -1,0 +1,168 @@
+\begin{html}
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Cholesky Factorization </TITLE>
+  </HEAD>
+  <BODY>
+    <hr>
+    <h2> Cholesky Factorization </h2>
+    <script src=code/linear_algebra/JSMatrix.js></script>
+    <script src=code/linear_algebra/Complex.js></script>
+    <script src=code/linear_algebra/BooleanReference.js></script>
+    <script src=code/linear_algebra/IntReference.js></script>
+    <script src=code/linear_algebra/StringReference.js></script>
+    <script src=code/linear_algebra/NumberReference.js></script>
+    <script src=code/linear_algebra/LaPack2.js></script>
+    <script src=code/linear_algebra/LaPack1.js></script>
+    <script src=code/linear_algebra/LaPack0.js></script>
+    <script src=code/linear_algebra/Blas3.js></script>
+    <script src=code/linear_algebra/Blas2.js></script>
+    <script src=code/linear_algebra/Blas1.js></script>
+    <script language="javascript">
+    var matrix_text="1;1,2;1,2,3";
+
+    function factorMatrix( ) {
+      matrix_text=document.getElementsByName('matrix_text')[0].value;
+      document.getElementById("left_factor_textarea").value="";
+      document.getElementById("factor_error_textarea").value="";
+      var m = new JSMatrix();
+      m.parse( matrix_text );
+//    for ( var i = 0; i < m.numberRows(); i ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        "m[ " + i + " , * ] = ";
+//      for ( var j = 0; j <= i; j ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          m.getEntry( i, j ) + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+
+      var mf = new JSMatrix();
+      mf.copy( m );
+
+      var info = new IntReference();
+      LaPack1.dpotrf( 'L', mf.numberRows(), mf.dataArray(), mf.numberRows(),
+        info, 0 );
+      var rank = info.getValue();
+      if ( rank == 0 ) rank = mf.numberRows();
+
+//    display left factor
+      var sa = new Array( mf.numberRows() * mf.numberCols() );
+      var cw = new Array( mf.numberCols() );
+      for ( var j = 0; j < mf.numberCols(); j ++ ) {
+        sa[ j + j * mf.numberRows() ] = new String();
+        for ( var i = j; i < mf.numberRows(); i ++ ) {
+          sa[ i + j * mf.numberRows() ] = 
+            scientificFormat( mf.getEntry( i, j ) );
+          cw[ j ]=
+            Math.max( sa[ i + j * mf.numberRows() ].length, cw[ j ] );
+        }
+      }
+      document.getElementById("left_factor_textarea").style.color = "green";
+      for ( var i = 0; i < mf.numberRows(); i ++ ) {
+        var str = new String();
+        for ( var j = 0; j <= Math.min( i, rank - 1 ); j ++ ) {
+          var sj = sa[ i + j * mf.numberRows() ];
+          while ( sj.length < cw[ j ] ) sj += ' ';
+          str += sj + ' ';
+        }
+        document.getElementById("left_factor_textarea").value += str + "\n";
+      }
+
+//    compute A - L * transpose(L)
+      var p = new JSMatrix( mf.numberRows(), mf.numberCols(), 0 );
+      for ( var j = 0; j < mf.numberCols(); j ++ ) {
+        Blas1.dcopy( j + 1, mf.dataArray(), mf.numberRows(),
+          p.dataArray(), 1, j, j * mf.numberRows() );
+      }
+//    for ( var i = 0; i < p.numberRows(); i ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        "L'[ " + i + " , * ] = ";
+//      for ( j = 0; j < p.numberCols(); j ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          p.getEntry( i, j ) + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+      Blas3.dtrmm( 'L', 'L', 'N', 'N', p.numberRows(), p.numberCols(), 1,
+        mf.dataArray(), mf.numberRows(), p.dataArray(), p.numberRows(),
+        0, 0 );
+      for ( var j = 0; j < m.numberCols(); j ++ ) {
+        for ( var i = j; i < m.numberRows(); i ++ ) {
+          p.setEntry( i, j, m.getEntry( i, j ) - p.getEntry( i, j ) );
+        }
+      }
+//    compute entry lengths
+      for ( var j=0; j < p.numberCols(); j ++ ) {
+        cw[ j ] = 0;
+        for ( var i = j; i < p.numberRows(); i ++ ) {
+          cw[ j ] = Math.max( cw[ j ],
+            scientificFormat( p.getEntry( i, j ) ).length);
+        }
+      }
+//    display A - L * R
+      document.getElementById("factor_error_textarea").style.color = "blue";
+      for ( var i = 0; i < p.numberRows(); i ++ ) {
+        var str3 = new String();
+        for ( var j = 0; j < i; j ++ ) {
+          var sj3 = scientificFormat( p.getEntry( i, j ) );
+          while ( sj3.length < cw[ j ] ) sj3 += ' ';
+          str3 += sj3 + " ";
+        }
+        str3 += scientificFormat( p.getEntry( i, i ) );
+        document.getElementById("factor_error_textarea").value += str3
+          + "\n";
+      }
+    }
+
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    Enter lower triangular part of matrix:
+    <input
+      type="text"
+      name="matrix_text"
+      value="1;1,2;1,2,3"
+      size="50"
+    >
+    <input
+      type="button"
+      value="Factor"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;factorMatrix();"
+    >
+    <br>
+    L:
+    <br>
+    <textarea
+      id="left_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <br>
+    A - L * transpose( L ):
+    <br>
+    <textarea
+      id="factor_error_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=50
+    >
+    </textarea>
+-->
+    <script language="javascript"> factorMatrix(); </script>
+    <hr>
+  </BODY>
+</HTML>
+\end{html}

@@ -1,0 +1,287 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Gaussian Factorization with Full Pivoting </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Gaussian Factorization with Full Pivoting </h2>
+    <script src=JSMatrix.js></script>
+    <script src=Complex.js></script>
+    <script src=BooleanReference.js></script>
+    <script src=IntReference.js></script>
+    <script src=StringReference.js></script>
+<!--
+-->
+    <script src=NumberReference.js></script>
+    <script src=LaPack2.js></script>
+    <script src=LaPack1.js></script>
+    <script src=LaPack0.js></script>
+    <script src=Blas3.js></script>
+    <script src=Blas2.js></script>
+    <script src=Blas1.js></script>
+    <script language="javascript">
+    var matrix_text="1,2;3,4";
+
+    function factorMatrix( ) {
+      matrix_text=document.getElementsByName('matrix_text')[0].value;
+      document.getElementById("row_pivot_textarea").value="";
+      document.getElementById("left_factor_textarea").value="";
+      document.getElementById("column_pivot_textarea").value="";
+      document.getElementById("right_factor_textarea").value="";
+      document.getElementById("factor_error_textarea").value="";
+      var m = new JSMatrix();
+      m.parse( matrix_text );
+      if ( m.numberRows() != m.numberCols() ) {
+        document.getElementById("factor_error_textarea").value +=
+          "m,n = " + m.numberRows() + " " + m.numberCols() + "\n";
+        document.getElementById("factor_error_textarea").value +=
+          "LAPACK routine dgetc2 requires square matrix\n";
+        return;
+      }
+
+      var mf = new JSMatrix();
+      mf.copy( m );
+      var ipiv = new Array( mf.numberRows() );
+      var jpiv = new Array( mf.numberCols() );
+      var info = new IntReference();
+      LaPack1.dgetc2( mf.numberRows(), mf.dataArray(), mf.numberRows(),
+        ipiv, jpiv, info, 0, 0, 0 );
+      var rank = info.getValue();
+      if ( rank == 0 ) rank = Math.min( mf.numberRows(), mf.numberCols() );
+
+//    display left factor
+//    document.getElementById("debug_textarea").value +=
+//      "display left factor\n";
+      var sa = new Array( mf.numberRows() * mf.numberCols() );
+      var cw = new Array( mf.numberCols() );
+      for ( var j = 0; j < rank; j ++ ) {
+        sa[ j + j * mf.numberRows() ] = new String();
+        sa[ j + j * mf.numberRows() ] = '1';
+        cw[ j ] = sa[ j + j * mf.numberRows() ].length;
+        for ( var i = j + 1; i < mf.numberRows(); i ++ ) {
+          sa[ i + j * mf.numberRows() ] = 
+            scientificFormat( mf.getEntry( i, j ) );
+          cw[ j ]=Math.max( sa[ i + j * mf.numberRows() ].length, cw[ j ] );
+        }
+      }
+      document.getElementById("left_factor_textarea").style.color = "green";
+      document.getElementById("row_pivot_textarea").style.color = "green";
+      for ( var i = 0; i < mf.numberRows(); i ++ ) {
+        var str = new String();
+        for ( var j = 0; j < Math.min( i, rank ); j ++ ) {
+          var sj = sa[ i + j * mf.numberRows() ];
+          while ( sj.length < cw[ j ] ) sj += ' ';
+          str += sj + ' ';
+        }
+        if ( i < rank ) str += '1';
+        document.getElementById("left_factor_textarea").value += str + "\n";
+        if ( i < rank - 1 ) {
+          document.getElementById("row_pivot_textarea").value +=
+            ipiv[i] + "\n";
+        }
+      }
+
+//    display right factor
+      for ( var j = 0; j < mf.numberCols(); j ++ ) {
+        cw[ j ] = 0;
+        for ( var i = 0; i <= Math.min( j, rank - 1 ); i ++ ) {
+          sa[ i + j * mf.numberRows() ] = 
+            scientificFormat( mf.getEntry( i, j ) );
+          cw[ j ]=Math.max( sa[ i + j * mf.numberRows() ].length, cw[ j ] );
+        }
+      }
+      document.getElementById("right_factor_textarea").style.color = "red";
+      document.getElementById("column_pivot_textarea").style.color = "red";
+      for ( var j = 0; j < rank - 1 ; j ++ ) {
+        var sj2 = jpiv[j].toString();
+        while ( sj2.length < cw[j] ) sj2 = " " + sj2;
+        document.getElementById("column_pivot_textarea").value += sj2 + " ";
+      }
+      for ( var i = 0; i < rank; i ++ ) {
+        var str2 = new String();
+        for ( var j = 0; j < i; j ++ ) {
+          var sj2 = '';
+          while ( sj2.length < cw[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        for ( var j = i; j < mf.numberCols() - 1; j ++ ) {
+          sj2 = sa[ i + j * mf.numberRows() ].toString();
+          while ( sj2.length < cw[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        j = mf.numberCols() - 1;
+        sj2 = sa[ i + j * mf.numberRows() ].toString();
+        while ( sj2.length < cw[ j ] ) sj2= ' ' + sj2;
+        str2 += sj2;
+        document.getElementById("right_factor_textarea").value += str2
+          + "\n";
+      }
+//    compute A - L * R
+      var p = new JSMatrix( mf.numberRows(), mf.numberCols(), 0 );
+      for ( var j = 0; j < rank; j ++ ) {
+        for ( var i = 0; i <= j; i ++ ) {
+          var sum = 0.;
+          for ( var l = 0; l < i; l ++ ) {
+            sum += mf.getEntry( i, l ) * mf.getEntry( l, j );
+          }
+          sum += mf.getEntry( i, j );
+          p.setEntry( i, j, sum );
+        }
+        for ( var i = j + 1; i < mf.numberRows(); i ++ ) {
+          sum = 0.;
+          for ( var l = 0; l <= j; l ++ ) {
+            sum += mf.getEntry( i, l ) * mf.getEntry( l, j );
+          }
+          p.setEntry( i, j, sum );
+        }
+      }
+      for ( var j = rank; j < mf.numberCols(); j ++ ) {
+        for ( var i = 0; i < rank; i ++ ) {
+          sum = 0.;
+          for ( var l = 0; l < i; l ++ ) {
+            sum += mf.getEntry( i, l ) * mf.getEntry( l, j );
+          }
+          sum += mf.getEntry( i, j );
+          p.setEntry( i, j, sum );
+        }
+        for ( var i = rank; i < mf.numberRows(); i ++ ) {
+          sum = 0.;
+          for ( var l = 0; l < rank; l ++ ) {
+            sum += mf.getEntry( i, l ) * mf.getEntry( l, j );
+          }
+          p.setEntry( i, j, sum );
+        }
+      }
+//    for ( var i = 0; i < p.numberRows(); i ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        "L R[ " + i + " , * ] = ";
+//      for ( var j = 0; j < p.numberCols(); j ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          p.getEntry( i, j ) + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+      for ( var i = rank - 2; i >= 0 ; i -- ) {
+        var ipi = ipiv[i] - 1;
+        if ( ipi != i ) {
+          Blas1.dswap( p.numberCols(), p.dataArray(), p.numberRows(),
+            p.dataArray(), p.numberRows(), i, ipi );
+        }
+      }
+      for ( var j = rank - 2; j >= 0 ; j -- ) {
+        var jpi = jpiv[j] - 1;
+        if ( jpi != j ) {
+          Blas1.dswap( p.numberRows(), p.dataArray(), 1, p.dataArray(), 1,
+            j * p.numberRows(), jpi * p.numberRows() );
+        }
+      }
+      for ( var j = 0; j < m.numberCols(); j ++ ) {
+        for ( var i = 0; i < m.numberRows(); i ++ ) {
+          p.setEntry( i, j, m.getEntry( i, j ) - p.getEntry( i, j ) );
+        }
+      }
+//    compute entry lengths
+//    document.getElementById("debug_textarea").value +=
+//      "compute entry lengths\n";
+      for ( var j=0; j < mf.numberCols(); j ++ ) {
+        cw[ j ] = 0;
+        for ( var i = 0; i < m.numberRows(); i ++ ) {
+          cw[ j ] = Math.max( cw[ j ],
+            scientificFormat( p.getEntry( i, j ) ).length);
+        }
+      }
+//    display A - L * R
+//    document.getElementById("debug_textarea").value +=
+//      "display error\n";
+      document.getElementById("factor_error_textarea").style.color = "blue";
+      for ( var i = 0; i < p.numberRows(); i ++ ) {
+        var str3 = new String();
+        for ( var j = 0; j < p.numberCols() - 1; j ++ ) {
+          var sj3 = scientificFormat( p.getEntry( i, j ) );
+          while ( sj3.length < cw[ j ] ) sj3 += ' ';
+          str3 += sj3 + " ";
+        }
+        str3 += scientificFormat( p.getEntry( i, p.numberCols() - 1 ) );
+        document.getElementById("factor_error_textarea").value += str3
+          + "\n";
+      }
+    }
+
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    Enter square matrix:
+    <input
+      type="text"
+      name="matrix_text"
+      value="1,2;3,4"
+      size="50"
+    >
+    <input
+      type="button"
+      value="Factor with full pivoting"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;factorMatrix();"
+    >
+    <br>
+    ipiv:
+    <br>
+    <textarea
+      id="row_pivot_textarea"
+      cols=3
+      rows=10
+    >
+    </textarea>
+    <br>
+    L:
+    <br>
+    <textarea
+      id="left_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <br>
+    jpiv:
+    <br>
+    <textarea
+      id="column_pivot_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+    <br>
+    R:  
+    <br>
+    <textarea
+      id="right_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <br>
+    A - Q * L * R * transpose(P):
+    <br>
+    <textarea
+      id="factor_error_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=50
+    >
+    </textarea>
+-->
+    <script language="javascript"> factorMatrix(); </script>
+<!--
+    <script language="javascript"> testLaPack1(); </script>
+-->
+  </BODY>
+</HTML>

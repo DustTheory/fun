@@ -1,0 +1,182 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Richardson Iteration in 1D </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Richardson Iteration in 1D </h2>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+    var r = undefined;
+    var x = undefined;
+    var x_exact = undefined;
+    var rowstart = undefined;
+    var colnums = undefined;
+    var values = undefined;
+    var n = undefined;
+    var mu = undefined;
+    var gt = undefined;
+    var it = undefined;
+    var old_errmax = undefined;
+
+    function plot() {
+      gt.newPage();
+      gt.setFgColor( "black" );
+      gt.drawBoundingBox();
+      gt.drawAxes();
+      gt.setFgColor( "red" );
+      var h = 0.5 / n;
+      var dx = 1. / ( n + 1 );
+      gt.beginDrawing();
+        gt.movePen( h, x_exact[ 0 ] );
+        gt.drawLine( 1. - h, x_exact[ n - 1 ] );
+      gt.endDrawing();
+      gt.setFgColor( "blue" );
+      gt.beginDrawing();
+        gt.movePen( h, x[ 0 ] );
+        for ( var i = 1; i < n; i ++ ) {
+          gt.drawLine( h + i / n, x[ i ] );
+        }
+      gt.endDrawing();
+    }
+    function iterate() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering iterate\n";
+      var rmax = 0.;
+      for ( var i = 0; i < n; i ++ ) {
+        var ri = ( i == 0 ? 1. : 0. );
+        for ( var k = rowstart[ i ]; k < rowstart[ i + 1]; k ++ ) {
+          var j = colnums[ k ];
+          ri -= values[ k ] * x[ j ];
+        }
+        r[ i ] = ri;
+        rmax = Math.max( rmax, Math.abs( ri ) );
+      }
+      var errmax = 0.;
+      for ( var i = 0; i < n; i ++ ) {
+        x[ i ] = x[ i ] + r[ i ] / mu;
+        errmax = Math.max( errmax, Math.abs( x[ i ] - x_exact[ i ] ) );
+      }
+      plot();
+      it ++;
+      document.getElementById("debug_textarea").value =
+        "iteration number = " + it + "\n";
+      document.getElementById("debug_textarea").value +=
+        "max residual = " + rmax + "\n";
+      document.getElementById("debug_textarea").value +=
+        "max error = " + errmax + "\n";
+      if ( old_errmax != undefined ) {
+        document.getElementById("debug_textarea").value +=
+          "improvement ratio = " + errmax / old_errmax + "\n";
+      }
+      old_errmax = errmax;
+//    document.getElementById("debug_textarea").value +=
+//      "leaving iterate\n";
+    }
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      old_errmax = undefined;
+      it = 0;
+      n = Math.max( 8,
+        Math.floor( document.getElementsByName('n_text')[0].value ) );
+      mu = Math.max( 0, Math.min( 4.,
+        document.getElementsByName('mu_text')[0].value ) );
+      x = new Array( n );
+      for ( var i = 0; i < x.length; i ++ ) {
+        x[ i ] = Math.random();
+      }
+      r = new Array( n );
+      var dx = 1. / ( n + 1 );
+      x_exact = new Array( n );
+      for ( var j = 0; j < n; j ++ ) {
+        x_exact[ j ] = ( n - j ) * dx;
+      }
+//    sparse matrix storage with diagonal first
+      rowstart = new Array( n + 1 );
+      colnums = new Array();
+      values = new Array();
+      var i = 0;
+      rowstart[ i ] = 0;
+      values.push(  2. ); colnums.push( i );
+      values.push( -1. ); colnums.push( i + 1 );
+      for ( i = 1; i < n - 1; i ++ ) {
+        rowstart[ i ] = colnums.length;
+        values.push(  2. ); colnums.push( i );
+        values.push( -1. ); colnums.push( i - 1 );
+        values.push( -1. ); colnums.push( i + 1 );
+      }
+      i = n - 1;
+      rowstart[ i ] = colnums.length;
+      values.push(  2. ); colnums.push( i );
+      values.push( -1. ); colnums.push( i - 1 );
+      rowstart[ n ] = colnums.length;
+
+      gt = new XYGraphTool( document.getElementById("richardson_canvas"),
+        "richardson iteration", "i", "x", 0., 1., 0., 1. );
+      gt.setBgColor( "white" );
+      plot();
+      document.getElementById("debug_textarea").value =
+        "iteration number = " + it + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    n :
+    <input
+      type="text"
+      name="n_text"
+      value="8"
+      onchange="checkNumber(document.getElementsByName('n_text')[0].value);"
+      size="3"
+    >
+    <br>
+    mu : 
+    <input
+      type="text"
+      name="mu_text"
+      value="2."
+      onchange="checkNumber(document.getElementsByName('mu_text')[0].value);"
+      size=10
+    >
+    <br>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="onStart();"
+    >
+    <br>
+    <canvas id="richardson_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=50
+      rows=4
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

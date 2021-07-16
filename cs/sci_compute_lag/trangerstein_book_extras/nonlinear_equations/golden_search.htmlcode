@@ -1,0 +1,16 @@
+\begin{html}
+  <iframe
+    src="code/nonlinear_equations/golden_search.html"
+    width=900
+    height=550
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/nonlinear_equations/golden_search.html">
+      golden_search.html
+    </a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

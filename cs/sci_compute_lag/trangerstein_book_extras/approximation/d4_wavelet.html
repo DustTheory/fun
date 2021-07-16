@@ -1,0 +1,124 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Daubechies D4 Wavelet</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    Daubechies D4 wavelet
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var m = 9;
+      var twotom = Math.pow(2,m);
+      var k = twotom;
+      var n = 3 * k;
+      var j = 0;
+//    var colors = [ "magenta", "red", "orange", "yellow", "brown",
+//      "green", "cyan", "blue", "black" ];
+      var phi_data = new Array( n );
+      var psi_data = new Array( n );
+      var gt = undefined;
+      var lowpass = new Array( 4 );
+      lowpass[ 0 ] = ( 1 + Math.sqrt( 3 ) ) * 0.125;
+      lowpass[ 1 ] = ( 3 + Math.sqrt( 3 ) ) * 0.125;
+      lowpass[ 2 ] = ( 3 - Math.sqrt( 3 ) ) * 0.125;
+      lowpass[ 3 ] = ( 1 - Math.sqrt( 3 ) ) * 0.125;
+      var highpass = new Array( 4 );
+      highpass[ 0 ] = lowpass[ 3 ];
+      highpass[ 1 ] = - lowpass[ 2 ];
+      highpass[ 2 ] = lowpass[ 1 ];
+      highpass[ 3 ] = - lowpass[ 0 ];
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var canvas = document.getElementById("scaling_fcn_canvas");
+        gt = new XYGraphTool( canvas, "Daubechies D4 scaling function",
+          "t", "psi", 0, 3, -2, 2 );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.setLineWidth( 1 );
+        gt.drawAxes();
+
+        phi_data[ 0 ] = 0;
+        phi_data[ k ] = lowpass[ 0 ] * 4;
+        phi_data[ 2 * k ] = lowpass[ 3 ] * 4;
+        psi_data[ 0 ] = 2 * highpass[ 0 ] * phi_data[ 0 ];
+        psi_data[ k ] = 2 * ( highpass[ 0 ] * phi_data[ 2 * k ]
+                            + highpass[ 1 ] * phi_data[ k ] );
+        psi_data[ 2 * k ] = 2 * ( highpass[ 2 ] * phi_data[ 2 * k ]
+                                + highpass[ 3 ] * phi_data[ k ] );
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+        var w = n / ( 3 * k );
+          var t = 0;
+          gt.movePen( t, psi_data[ 0 ]);
+          for ( var i = 1; i < n / k; i ++ ) {
+            var t = i / w;
+            gt.drawLine( t, psi_data[ i * k ]);
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function refine() {
+        if ( j >= m ) return;
+        j ++;
+        k /= 2;
+        for ( var i = k; i < 3 * twotom; i += 2 * k ) {
+          phi_data[ i ] = 0;
+          psi_data[ i ] = 0;
+//        refinement equation for scaling function and wavelet:
+          for ( var nn = 0; nn < 4; nn ++ ) {
+            var ii = 2 * i - nn * twotom;
+            if ( ii >= 0 && ii < 3 * twotom ) {
+              phi_data[ i ] += lowpass[ nn ] * phi_data[ ii ];
+              psi_data[ i ] += highpass[ nn ] * phi_data[ ii ];
+            }
+          }
+          phi_data[ i ] *= 2;
+          psi_data[ i ] *= 2;
+        }
+        gt.newPage();
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.setLineWidth( 1 );
+        gt.drawAxes();
+
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+          var w = k / 512;
+          gt.movePen( 0, psi_data[ 0 ]);
+          for ( var i = k; i < 3 * twotom; i += k ) {
+            var t = i / 512;
+            gt.drawLine( t, psi_data[ i ]);
+          }
+        gt.endDrawing();
+      }
+    </script>
+    <canvas id="scaling_fcn_canvas" width="512" height="512">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <input
+      type="button"
+      value="refine"
+      onclick="refine();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

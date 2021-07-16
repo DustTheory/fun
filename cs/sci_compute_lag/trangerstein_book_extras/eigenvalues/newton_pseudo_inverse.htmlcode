@@ -1,0 +1,14 @@
+\begin{html}
+  <iframe
+    src="code/eigenvalues/newton_pseudo_inverse.html"
+    width=1150
+    height=850
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/eigenvalues/newton_pseudo_inverse.html">newton_pseudo_inverse.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

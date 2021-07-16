@@ -1,0 +1,137 @@
+c "$Header: /home/faculty/johnt/cvs/memdebug/m4amr.sed,v 1.11 2003/06/15 13:50:01 johnt Exp $"
+undefine(`len')dnl
+undefine(`index')dnl
+undefine(`shift')dnl
+undefine(`format')dnl
+define(MEMDEBUGSDIR,/home/faculty/johnt/math226/memdebug)dnl
+define(FVSDIR,)dnl
+define(SDIR,/home/faculty/johnt/math226/bvp2)dnl
+define(REAL,`double precision')dnl
+define(COMPLEX,`double complex')dnl
+define(BOOLEAN,`logical*1')dnl
+define(FORTDEBUG,`1')dnl
+define(NDIM,`1')dnl
+
+ifelse(NDIM,`1',`
+define(DIMDECL,`$1_0')dnl
+define(DIMCHOOSE,`$1')dnl
+define(AXISCELLM0,`$1_0:$2_0')dnl
+define(AXISCELLVM0,`$2_0-$1_0+1')dnl
+define(AXISEDGEM0,`$1_0:$2_0+1')dnl
+define(AXISEDGEVM0,`$2_0-$1_0+2')dnl
+define(CELLM,`$1_0:$2_0')dnl
+define(CELLVM,`$2_0-$1_0+1')dnl
+define(CORNERM,`$1_0:$2_0+1')dnl
+define(CORNERVM,`$2_0-$1_0+2')dnl
+define(SIDEM0,`$1_0:$2_0+1')dnl
+define(SIDEVM0,`$2_0-$1_0+2')dnl
+define(OUTERSIDEM0,`2')dnl
+define(OUTERSIDEVM0,`2')dnl
+define(OUTERCORNERM0,`2')dnl
+define(OUTERCORNERVM0,`2')dnl
+define(BOUNDARYCONDITIONM0,`2')dnl
+define(BOUNDARYCONDITIONVM0,`2')dnl
+')dnl
+
+ifelse(NDIM,`2',`
+define(DIMDECL,`$1_0,$1_1')dnl
+define(DIMCHOOSE,`$1,$2')dnl
+define(AXISCELLM0,`$1_0:$2_0')dnl
+define(AXISCELLM1,`$1_1:$2_1')dnl
+define(AXISCELLVM0,`$2_0-$1_0+1')dnl
+define(AXISCELLVM1,`$2_1-$1_1+1')dnl
+define(AXISEDGEM0,`$1_0:$2_0+1')dnl
+define(AXISEDGEM1,`$1_1:$2_1+1')dnl
+define(AXISEDGEVM0,`$2_0-$1_0+2')dnl
+define(AXISEDGEVM1,`$2_1-$1_1+2')dnl
+define(CELLM,`$1_0:$2_0,$1_1:$2_1')dnl
+define(CELLVM,`($2_0-$1_0+1)*($2_1-$1_1+1)')dnl
+define(CORNERM,`$1_0:$2_0+1,$1_1:$2_1+1')dnl
+define(CORNERVM,`($2_0-$1_0+2)*($2_1-$1_1+2)')dnl
+define(SIDEM0,`$1_0:$2_0+1,$1_1:$2_1')dnl
+define(SIDEM1,`$1_1:$2_1+1,$1_0:$2_0')dnl
+define(SIDEVM0,`($2_0-$1_0+2)*($2_1-$1_1+1)')dnl
+define(SIDEVM1,`($2_1-$1_1+2)*($2_0-$1_0+1)')dnl
+define(OUTERSIDEM0,`$1_1:$2_1,2')dnl
+define(OUTERSIDEM1,`$1_0:$2_0,2')dnl
+define(OUTERSIDEVM0,`2*($2_1-$1_1+1)')dnl
+define(OUTERSIDEVM1,`2*($2_0-$1_0+1)')dnl
+define(OUTERCORNERM0,`$1_1:$2_1+1,2')dnl
+define(OUTERCORNERM1,`$1_0:$2_0+1,2')dnl
+define(OUTERCORNERVM0,`2*($2_1-$1_1+2)')dnl
+define(OUTERCORNERVM1,`2*($2_0-$1_0+2)')dnl
+define(BOUNDARYCONDITIONM0,`$1_1:$2_1,2')dnl
+define(BOUNDARYCONDITIONM1,`$1_0:$2_0,2')dnl
+define(BOUNDARYCONDITIONVM0,`2*($2_1-$1_1+1)')dnl
+define(BOUNDARYCONDITIONVM1,`2*($2_0-$1_0+1)')dnl
+')dnl
+
+ifelse(NDIM,`3',`
+define(DIMDECL,`$1_0,$1_1,$1_2')dnl
+define(DIMCHOOSE,`$1,$2,$3')dnl
+define(AXISCELLM0,`$1_0:$2_0')dnl
+define(AXISCELLM1,`$1_1:$2_1')dnl
+define(AXISCELLM2,`$1_2:$2_2')dnl
+define(AXISCELLVM0,`$2_0-$1_0+1')dnl
+define(AXISCELLVM1,`$2_1-$1_1+1')dnl
+define(AXISCELLVM2,`$2_2-$1_2+1')dnl
+define(AXISEDGEM0,`$1_0:$2_0+1')dnl
+define(AXISEDGEM1,`$1_1:$2_1+1')dnl
+define(AXISEDGEM2,`$1_2:$2_2+1')dnl
+define(AXISEDGEVM0,`$2_0-$1_0+2')dnl
+define(AXISEDGEVM1,`$2_1-$1_1+2')dnl
+define(AXISEDGEVM2,`$2_2-$1_2+2')dnl
+define(CELLM,`$1_0:$2_0,$1_1:$2_1,$1_2:$2_2')dnl
+define(CELLVM,`($2_0-$1_0+1)*($2_1-$1_1+1)*($2_2-$1_2+1)')dnl
+define(CORNERM,`$1_0:$2_0+1,$1_1:$2_1+1,$1_2:$2_2+1')dnl
+define(CORNERVM,`($2_0-$1_0)*($2_1-$1_1)*($2_2-$1_2)')dnl
+define(SIDEM0,`$1_0:$2_0+1,$1_1:$2_1,$1_2:$2_2')dnl
+define(SIDEM1,`$1_1:$2_1+1,$1_2:$2_2,$1_0:$2_0')dnl
+define(SIDEM2,`$1_2:$2_2+1,$1_0:$2_0,$1_1:$2_1')dnl
+define(SIDEVM0,`($2_0-$1_0+2)*($2_1-$1_1+1)*($2_2-$1_2+1)')dnl
+define(SIDEVM1,`($2_1-$1_1+2)*($2_2-$1_2+1)*($2_0-$1_0+1)')dnl
+define(SIDEVM2,`($2_2-$1_2+2)*($2_0-$1_0+1)*($2_1-$1_1+1)')dnl
+define(EDGEM0,`$1_1:$2_1+1,$1_2:$2_2+1,$1_0:$2_0')dnl
+define(EDGEM1,`$1_2:$2_2+1,$1_0:$2_0+1,$1_1:$2_1')dnl
+define(EDGEM2,`$1_0:$2_0+1,$1_1:$2_1+1,$1_2:$2_2')dnl
+define(EDGEVM0,`($2_1-$1_1+2)*($2_2-$1_2+2)*($2_0-$1_0+1)')dnl
+define(EDGEVM1,`($2_2-$1_2+2)*($2_0-$1_0+2)*($2_1-$1_1+1)')dnl
+define(EDGEVM2,`($2_0-$1_0+2)*($2_1-$1_1+2)*($2_2-$1_2+1)')dnl
+define(OUTERSIDEM0,`$1_1:$2_1,$1_2:$2_2,2')dnl
+define(OUTERSIDEM1,`$1_2:$2_2,$1_0:$2_0,2')dnl
+define(OUTERSIDEM2,`$1_0:$2_0,$1_1:$2_1,2')dnl
+define(OUTERSIDEVM0,`2*($2_2-$1_1+1)*($2_2-$1_2+1)')dnl
+define(OUTERSIDEVM1,`2*($2_2-$1_2+1)*($2_0-$1_0+1)')dnl
+define(OUTERSIDEVM2,`2*($2_0-$1_0+1)*($2_1-$1_1+1)')dnl
+define(OUTERCORNERM0,`$1_1:$2_1+1,$1_2:$2_2+1,2')dnl
+define(OUTERCORNERM1,`$1_2:$2_2+1,$1_0:$2_0,2')dnl
+define(OUTERCORNERM2,`$1_0:$2_0,$1_1:$2_1,2')dnl
+define(OUTERCORNERVM0,`2*($2_2-$1_1+2)*($2_2-$1_2+2)')dnl
+define(OUTERCORNERVM1,`2*($2_2-$1_2+2)*($2_0-$1_0+2)')dnl
+define(OUTERCORNERVM2,`2*($2_0-$1_0+2)*($2_1-$1_1+2)')dnl
+define(BOUNDARYCONDITIONM0,`$1_1:$2_0,$1_2:$2_2,2')dnl
+define(BOUNDARYCONDITIONM1,`$1_2:$2_2,$1_0:$2_0,2')dnl
+define(BOUNDARYCONDITIONM2,`$1_0:$2_0,$1_1:$2_1,2')dnl
+define(BOUNDARYCONDITIONVM0,`2*($2_1-$1_1+1)*($2_2-$1_2+1)')dnl
+define(BOUNDARYCONDITIONVM1,`2*($2_2-$1_2+1)*($2_0-$1_0+1)')dnl
+define(BOUNDARYCONDITIONVM2,`2*($2_0-$1_0+1)*($2_1-$1_1+1)')dnl
+')dnl
+
+define(INTERPOLATIONG,1)dnl
+define(ARROW_SIZE,0.3d0)dnl
+
+define(coarsen_indices,`dnl
+        if ($1.lt.0) then
+          $2=($1+1)/$3-1
+        else
+          $2=$1/$3
+        endif
+')dnl
+define(coarsen_side_indices,`dnl
+        it=2*$1+$3
+        if (it.le.0) then
+          $2=it/(2*$3)-1
+        else
+          $2=(it-1)/(2*$3)
+        endif
+')dnl

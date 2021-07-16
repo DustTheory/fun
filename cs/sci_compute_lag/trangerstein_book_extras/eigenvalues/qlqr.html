@@ -1,0 +1,332 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> QL/QR Method for Symmetric Tridiagonal Matrix </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> QL/QR Method for Symmetric Tridiagonal Matrix </h2>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/LaPack1.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+    var diagonal_text = "6;5;4;3;2";
+    var subdiagonal_text = "-1;-1;-1;-1";
+    var d = new JSVector();
+    var e = new JSVector();
+    var n = 0;
+    var eps = undefined;
+    var eps2 = undefined;
+    var safmin = undefined;
+    var safmax = undefined;
+    var ssfmax = undefined;
+    var ssfmin = undefined;
+    var sigma = undefined;
+    var l1 = undefined;
+    var nm1 = undefined;
+    var l = undefined;
+    var lend = undefined;
+    var running_ql = false;
+    var running_qr = false;
+
+    function printMatrix( l, lend ) {
+      document.getElementById("debug_textarea").value +=
+        "  diagonal = ";
+      for (var ii = 0; ii < n; ii ++ ) {
+        document.getElementById("debug_textarea").value +=
+          d.getEntry( ii ) + " ";
+      }
+      document.getElementById("debug_textarea").value +=
+        "\n  subdiagonal = ";
+      for (var ii = 0; ii < nm1; ii ++ ) {
+        document.getElementById("debug_textarea").value +=
+          e.getEntry( ii ) + " ";
+      }
+      document.getElementById("debug_textarea").value += "\n";
+    }
+    function iterate() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering iterate\n";
+//    document.getElementById("debug_textarea").value +=
+//      "running_ql,running_qr = " + running_ql + " " + running_qr + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "l1,n,nm1 = " + l1 + " " + n + " " + nm1 + "\n";
+      if ( ! running_ql && ! running_qr ) {
+        var lsv = undefined;
+        while ( true ) { // 10
+          if ( l1 > n ) return;
+          if ( l1 > 1 ) e.setEntry( l1 - 2 , 0. );
+          var goto30 = false;
+          if ( l1 <= nm1 ) {
+            for ( var m = l1; m <= nm1; m ++ ) {
+              var tst = Math.abs( e.getEntry( m - 1 ) );
+//            document.getElementById("debug_textarea").value +=
+//              "m,tst = " + m + " " + tst + "\n";
+              if ( tst == 0. ) {
+//              document.getElementById("debug_textarea").value +=
+//                "tst = 0\n";
+                goto30 = true;
+                break;
+              }
+              if ( tst <= ( Math.sqrt( Math.abs( d.getEntry( + m - 1 ) ) )
+              * Math.sqrt( Math.abs( d.getEntry( + m ) ) ) ) * eps ) {
+//              document.getElementById("debug_textarea").value +=
+//                "tst small\n";
+                e.setEntry( m - 1 , 0. );
+                goto30 = true;
+                break;
+              }
+            }
+          }
+          if ( ! goto30 ) m = n;
+//        document.getElementById("debug_textarea").value +=
+//          "m = " + m + "\n";
+          l = l1;
+          lsv = l;
+          lend = m;
+          var lendsv = lend;
+          l1 = m + 1;
+          if ( lend !== l ) break;
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "l1,l,lend = " + l1 + " " + l + " " + lend + "\n";
+        for ( var i = l; i <= lend - 1; i ++ ) {
+          e.setEntry( i - 1 , Math.pow( e.getEntry( i - 1 ) , 2 ) );
+        }
+        if ( Math.abs( d.getEntry( lend - 1 ) ) <
+        Math.abs( d.getEntry( l - 1 ) ) ) {
+          lend = lsv;
+          l = lendsv;
+//        document.getElementById("debug_textarea").value +=
+//          "l,lend = " + l + " " + lend + "\n";
+        }
+        if ( lend >= l ) running_ql = true;
+        else running_qr = true;
+      }
+      if ( running_ql ) {
+        document.getElementById("debug_textarea").value =
+          "ql step, l,lend = " + l + " " + lend + "\ninput:\n";
+        printMatrix( );
+        var goto70 = false;
+        if ( l != lend ) {
+          var lendm1 = lend - 1;
+          for ( m = l; m <= lendm1; m ++ ) {
+            tst = Math.abs( e.getEntry( m - 1 ) );
+            if ( tst <= eps2 * Math.abs( d.getEntry( m - 1 )
+            * d.getEntry( m ) ) ) {
+              goto70 = true;
+              break;
+            }
+          }
+        }
+        if ( ! goto70 ) m = lend;
+        if ( m < lend ) e.setEntry( m - 1 , 0. );
+        var p = d.getEntry( l - 1 );
+        if ( m != l ) {
+          if ( m == l + 1 ) {
+            rte = Math.sqrt( e.getEntry( l - 1 ) );
+            var rt1 = new NumberReference();
+            var rt2 = new NumberReference();
+            LaPack0.dlae2( d.getEntry( l - 1 ), rte, d.getEntry( l ),
+              rt1, rt2 );
+            d.setEntry( l - 1 , rt1.getValue() );
+            d.setEntry( l , rt2.getValue() );
+            e.setEntry( l - 1 , 0. );
+            l += 2;
+            if ( l <= lend ) return;
+            running_ql = false;
+            return;
+          }
+          var rte = Math.sqrt( e.getEntry( l - 1 ) );
+          sigma = ( d.getEntry( l ) - p ) / ( 2. * rte );
+          var r = LaPack0.dlapy2( sigma, 1. );
+          sigma = p - ( rte / ( sigma + ( sigma >= 0. ? r : -r ) ) );
+          var c = 1.;
+          var s = 0.;
+          var gamma = d.getEntry( m - 1 ) - sigma;
+          p = gamma * gamma;
+          var mm1 = m - 1;
+          for ( i = mm1; i >= l; i -- ) {
+            var bb = e.getEntry( i - 1 );
+            r = p + bb;
+            if ( i != m - 1 ) e[ i ] = s * r;
+            var oldc = c;
+            c = p / r;
+            s = bb / r;
+            var oldgam = gamma;
+            var alpha = d.getEntry( i - 1 );
+            gamma = c * ( alpha - sigma ) - s * oldgam;
+            d.setEntry( i , oldgam + ( alpha - gamma ) );
+            p = ( c != 0. ? ( gamma * gamma ) / c : oldc * bb );
+          }
+          e.setEntry( l - 1 , s * p );
+          d.setEntry( l - 1 , sigma + gamma );
+          document.getElementById("debug_textarea").value +=
+            "output:\n";
+          printMatrix( );
+          return;
+        } // 90
+        d.setEntry( l - 1 , p );
+        l ++;
+        if ( l > lend ) running_ql = false;
+        document.getElementById("debug_textarea").value +=
+          "output:\n";
+        printMatrix( );
+      } else { // QR
+        document.getElementById("debug_textarea").value =
+          "qr step, l,lend = " + l + " " + lend + "\ninput:\n";
+        printMatrix( );
+        var goto120 = false;
+        if ( l != lend ) {
+          var lendp1 = lend + 1;
+          for ( m = l; m >= lendp1; m -- ) {
+            tst = Math.abs( e.getEntry( m - 2 ) );
+            if ( tst <= eps2 * Math.abs( d.getEntry( m - 1 )
+            * d.getEntry( m - 2 ) ) ) {
+              goto120 = true;
+              break;
+            }
+          }
+        }
+        if ( ! goto120 ) m = lend;
+//      document.getElementById("debug_textarea").value +=
+//        "m,l = " + m + " " + l + "\n";
+        if ( m > lend ) e.setEntry( m - 2 , 0. );
+        p = d.getEntry( l - 1 );
+        if ( m != l ) {
+//        document.getElementById("debug_textarea").value +=
+//          "m !== l\n";
+          if ( m == l - 1 ) {
+//          document.getElementById("debug_textarea").value +=
+//            "m == l - 1\n";
+            rte = Math.sqrt( e.getEntry( l - 1 ) );
+            var rt1 = new NumberReference();
+            var rt2 = new NumberReference();
+            LaPack0.dlae2( d.getEntry( l - 1 ), rte,
+              d.getEntry( l - 2 ), rt1, rt2 );
+            d.setEntry( l - 1 , rt1.getValue() );
+            d.setEntry( l - 2 , rt2.getValue() );
+            e.setEntry( l - 2 , 0. );
+            l -= 2;
+            if ( l <= lend ) return;
+            running_qr = false;
+            document.getElementById("debug_textarea").value +=
+              "output:\n";
+            printMatrix( );
+            return;
+          }
+          rte = Math.sqrt( e.getEntry( l - 2 ) );
+          sigma = ( d.getEntry( l - 2 ) - p ) / ( 2. * rte );
+          r = LaPack0.dlapy2( sigma, 1. );
+          sigma = p - ( rte / ( sigma + ( sigma >= 0. ? r : -r ) ) );
+          c = 1.;
+          s = 0.;
+          gamma = d.getEntry( m - 1 ) - sigma;
+          p = gamma * gamma;
+          var lm1 = l - 1;
+          for ( i = m; i <= lm1; i ++ ) {
+            bb = e.getEntry( i - 1 );
+            r = p + bb;
+            if ( i != m ) e.setEntry( i - 2 , s * r );
+            oldc = c;
+            c = p / r;
+            s = bb / r;
+            oldgam = gamma;
+            alpha = d.getEntry( i );
+            gamma = c * ( alpha - sigma ) - s * oldgam;
+            d.setEntry( i - 1 , oldgam + ( alpha - gamma ) );
+            p = ( c != 0. ? ( gamma * gamma ) / c : oldc * bb );
+          }
+          e.setEntry( lm1 - 1 , s * p );
+          d.setEntry( l - 1 , sigma + gamma );
+          document.getElementById("debug_textarea").value +=
+            "output:\n";
+          printMatrix( );
+          return;
+        } // 140
+        d.setEntry( l - 1 , p );
+        l --;
+        if ( l < lend ) running_qr = false;
+        document.getElementById("debug_textarea").value +=
+          "output:\n";
+        printMatrix( );
+      } // 150
+    }
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      d.parse( diagonal_text );
+      e.parse( subdiagonal_text );
+
+      n = d.length();
+      eps = LaPack0.dlamch( 'E' );
+      eps2 = eps * eps;
+      safmin = LaPack0.dlamch( 'S' );
+      safmax = 1. / safmin;
+      ssfmax = Math.sqrt( safmax ) / 3.;
+      ssfmin = Math.sqrt( safmin ) / eps2;
+      sigma = 0.;
+      l1 = 1;
+      nm1 = n - 1;
+      running_ql = false;
+      running_qr = false;
+      iterate();
+
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+      diagonal =
+      <input
+        type="text"
+        name="diagonal_text"
+        value="6;5;4;3;2"
+        size="50"
+      >
+      <br>
+      sub-diagonal =
+      <input
+        type="text"
+        name="subdiagonal_text"
+        value="-1;-1;-1;-1"
+        size="50"
+      >
+    <br>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="diagonal_text=document.getElementsByName('diagonal_text')[0].value;subdiagonal_text=document.getElementsByName('subdiagonal_text')[0].value;onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=150
+      rows=10
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

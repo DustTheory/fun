@@ -1,0 +1,143 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Haar Wavelet</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+    Haar wavelet for
+    \( f(x) = \sin(x) \;,\; 0 \leq x \leq 2 \pi \)
+    </h2>
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script src=../linear_algebra/Complex.js></script>
+    <script language="javascript">
+      var n = 512;
+      var m = 9;
+      var j = 0;
+      var p = 1;
+      var data = new Array( n );
+      var gt = undefined;
+
+      function f( x ) { return Math.sin(x); }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var canvas = document.getElementById("wavelet_canvas");
+        gt = new XYGraphTool( canvas, "Haar function representation",
+          "x", "f", 0, 2 * Math.PI, -1, 1 );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.setLineWidth( 1 );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.setLineWidth( 3 );
+        gt.beginDrawing();
+          var dx = 2 * Math.PI / 512;
+          for ( var i = 0; i < n; i ++ ) {
+            var x = i * dx;
+            data[ i ] = f( i * dx );
+            gt.movePen( x, data[ i ]);
+            gt.drawLine( x+dx, data[ i ]);
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function cascade() {
+        if ( j >= m ) return;
+//      document.getElementById("debug_textarea").value =
+//        "j,n,p = " + j + " " + n + " " + p + "\n";
+        j ++;
+        n /= 2;
+        var t = 2 * p;
+
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.setLineWidth( 1 );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.setLineWidth( 3 );
+        gt.beginDrawing();
+          var k = 0;
+          var dx = 2 * Math.PI / n;
+          for ( var i = 0; i < n; i ++ ) {
+            var s = ( data[ k ] + data[ k + p ] ) * 0.5;
+            data[ k + p ] = data[ k ] - s;
+            data[ k ] = s;
+
+            var x = i * dx;
+            gt.movePen( x, s );
+            gt.drawLine( x + dx, s );
+            k += t;
+          }
+          p = t;
+        gt.endDrawing();
+      }
+      function pyramid() {
+        if ( j <= 0 ) return;
+//      document.getElementById("debug_textarea").value =
+//        "j,n,p = " + j + " " + n + " " + p + "\n";
+        j --;
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.setLineWidth( 1 );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.setLineWidth( 3 );
+        gt.beginDrawing();
+          var k = 0;
+          var h = p / 2;
+          var dx = Math.PI / n;
+          for ( var i = 0; i < n; i ++ ) {
+            var phi = data[ k ] + data[ k + h ];
+            data[ k + h ] = data[ k ] - data[ k + h ];
+            data[ k ] = phi;
+
+            var x = 2 * i * dx;
+            gt.movePen( x, data[ k ] );
+            gt.drawLine( x + dx, data[ k ] );
+            gt.movePen( x + dx, data[ k + h ] );
+            gt.drawLine( x + 2 * dx, data[ k + h ] );
+            k += p;
+          }
+          n *= 2;
+          p = h;
+        gt.endDrawing();
+      }
+    </script>
+    <canvas id="wavelet_canvas" width="512" height="512">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <input
+      type="button"
+      value="Cascade (decrease resolution)"
+      onclick="cascade();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Pyramid (increase resolution)"
+      onclick="pyramid();"
+    >
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

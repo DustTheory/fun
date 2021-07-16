@@ -1,0 +1,319 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Householder QR Factorization </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Householder QR Factorization </h2>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/JSMatrix.js></script>
+    <script src=../linear_algebra/Blas1.js></script>
+    <script src=../linear_algebra/Blas2.js></script>
+    <script src=../linear_algebra/Blas3.js></script>
+    <script src=../linear_algebra/LaPack3.js></script>
+    <script language="javascript">
+    var matrix_text="1,1;1.e-10,0;0,1.e-10";
+
+    function factorMatrix( ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering factorMatrix\n";
+      document.getElementById("qr_factor_textarea").value="";
+      document.getElementById("tau_factor_textarea").value="";
+      document.getElementById("q_factor_textarea").value="";
+      document.getElementById("r_factor_textarea").value="";
+      document.getElementById("qr_minus_a_textarea").value="";
+      document.getElementById("qtq_minus_i_textarea").value="";
+      var A = new JSMatrix();
+      A.parse( matrix_text );
+      var QR = new JSMatrix();
+      QR.copy( A );
+      var m = QR.numberRows();
+      var n = QR.numberCols();
+      if ( m < n ) return;
+      var tau = new JSVector( n, 0. );
+      var Q = new JSMatrix( m, m, 0. );
+
+//    for ( var i = 0; i < m; i ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        "QR(" + i + ",*) = ";
+//      for ( var j = 0; j < n; j ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          QR.getEntry( i, j ) + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+
+//    factor A
+      var work=new Array( n );
+      for ( var k = 0; k < n; k++ ) {
+        var beta = Blas1.dnrm2( m - k, QR.dataArray(), 1, k + k * m );
+        var alpha = QR.getEntry( k, k );
+        if ( alpha > 0. ) beta = - beta;
+        tau.setEntry( k, ( beta - alpha ) / beta );
+//      document.getElementById("debug_textarea").value +=
+//        "k,alpha,beta,tau = " + k + " " + alpha + " " + beta + " "
+//        + tau.getEntry(k) + "\n";
+        if ( k < m - 1 ) {
+          Blas1.dscal( m - k - 1, 1. / ( alpha - beta ), QR.dataArray(), 1,
+            k + 1 + k * m );
+//        document.getElementById("debug_textarea").value += "u = ";
+//        for ( var i = k + 1; i < m; i ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            QR.getEntry( i, k ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+        }
+        if ( k < n - 1 ) {
+          QR.setEntry( k, k, 1. );
+          Blas2.dgemv( 'T', m - k, n - k - 1, 1., QR.dataArray(), m,
+            QR.dataArray(), 1, 0., work, 1, k + ( k + 1 ) * m, k + k * m,
+            k + 1 );
+//        document.getElementById("debug_textarea").value += "work = ";
+//        for ( var j = k + 1; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            work[ j ] + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+          Blas2.dger( m - k, n - k - 1, - tau.getEntry( k ),
+            QR.dataArray(), 1, work, 1, QR.dataArray(), m,
+            k + k * m, k + 1, k + ( k + 1 ) * m );
+//        document.getElementById("debug_textarea").value += "QR = ";
+//        for ( var i = k; i < m; i ++ ) {
+//          for ( var j = k; j < n; j ++ ) {
+//            document.getElementById("debug_textarea").value +=
+//              QR.getEntry( i, j ) + " ";
+//          }
+//          document.getElementById("debug_textarea").value += "\n";
+//        }
+        }
+        QR.setEntry( k, k, beta );
+      }
+      var sqr = new Array( m * n );
+      var cwqr = new Array( m );
+      for ( var j = 0; j < n; j ++ ) {
+        cwqr[ j ] = 0;
+        for ( var i = 0; i < m; i ++ ) {
+          sqr[ i + j * m ] = scientificFormat( QR.getEntry( i, j ) );
+          cwqr[ j ]=Math.max( sqr[ i + j * m ].length, cwqr[ j ] );
+        }
+      }
+//    display factored matrix storage
+      document.getElementById("qr_factor_textarea").style.color = "blue";
+      document.getElementById("qr_factor_textarea").value += "QR = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        var str = new String();
+        for ( var j = 0; j < n; j ++ ) {
+          var sj = sqr[ i + j * m ];
+          while ( sj.length < cwqr[ j ] ) sj += ' ';
+          str += sj + ' ';
+        }
+        document.getElementById("qr_factor_textarea").value += str + "\n";
+      }
+      document.getElementById("tau_factor_textarea").style.color = "blue";
+      document.getElementById("tau_factor_textarea").value += "tau = \n";
+      for ( var j = 0; j < n; j ++ ) {
+        document.getElementById("tau_factor_textarea").value +=
+          tau.getEntry(j) + " ";
+      }
+
+//    form Q:
+      for ( var k = 0; k < m; k ++ ) Q.setEntry( k, k, 1. );
+      for ( var k = 0; k < n; k ++ ) {
+        var rho = QR.getEntry( k, k );
+        QR.setEntry( k, k, 1. );
+        Blas2.dgemv( 'T', m - k, m, 1., Q.dataArray(), m, QR.dataArray(), 1,
+          0., work, 1, k, k + k * m, 0 );
+        Blas2.dger( m - k, m, - tau.getEntry( k ), QR.dataArray(), 1,
+          work, 1, Q.dataArray(), m, k + k * m, 0, k );
+        QR.setEntry( k, k, rho );
+      }
+
+      var sq = new Array( m * m );
+      var cwq = new Array( m );
+      for ( var j = 0; j < m; j ++ ) {
+        cwq[ j ] = 0;
+        for ( var i = 0; i < m; i ++ ) {
+          sq[ i + j * m ] = scientificFormat( Q.getEntry( i, j ) );
+          cwq[ j ]=Math.max( sq[ i + j * m ].length, cwq[ j ] );
+        }
+      }
+      var sr = new Array( n * n );
+      var cwr = new Array( n );
+      for ( var j = 0; j < n; j ++ ) {
+        cwr[ j ] = 0;
+        for ( var i = 0; i <= j; i ++ ) {
+          sr[ i + j * m ] = scientificFormat( QR.getEntry( i, j ) );
+          cwr[ j ]=Math.max( sr[ i + j * m ].length, cwr[ j ] );
+        }
+      }
+//    display left factor
+      document.getElementById("q_factor_textarea").style.color = "green";
+      document.getElementById("q_factor_textarea").value = "Q = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        var str = new String();
+        for ( var j = 0; j < m; j ++ ) {
+          var sj = sq[ i + j * m ];
+          while ( sj.length < cwq[ j ] ) sj += ' ';
+          str += sj + ' ';
+        }
+        document.getElementById("q_factor_textarea").value += str + "\n";
+      }
+//    display right factor
+      document.getElementById("r_factor_textarea").style.color = "red";
+      document.getElementById("r_factor_textarea").value = "R = \n";
+      for ( var i = 0; i < n; i ++ ) {
+        var str2 = new String();
+        for ( var j = 0; j < i; j ++ ) {
+          var sj2 = '';
+          while ( sj2.length < cwr[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        for ( var j = i; j < n - 1; j ++ ) {
+          sj2 = sr[ i + j * m ];
+          while ( sj2.length < cwr[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        j = n - 1;
+        sj2 = sr[ i + j * m ];
+        while ( sj2.length < cwr[ j ] ) sj2= ' ' + sj2;
+        str2 += sj2;
+        document.getElementById("r_factor_textarea").value += str2
+          + "\n";
+      }
+//    compute A - Q * R
+      var P = new JSMatrix( m, n );
+      Blas1.dcopy( m * n, QR.dataArray(), 1, P.dataArray(), 1, 0, 0 );
+      Blas3.dtrmm( 'R', 'U', 'N', 'N', m, n, -1., QR.dataArray(), m, 
+        P.dataArray(), m, 0, 0 );
+      P.plusEquals( A );
+
+//    compute entry lengths
+      var cwp = new Array( n );
+      for ( var j=0; j < n; j ++ ) {
+        cwp[ j ] = 0;
+        for ( var i = 0; i < m; i ++ ) {
+          cwp[ j ] = Math.max( cwp[ j ],
+            scientificFormat( P.getEntry( i, j ) ).length);
+        }
+      }
+//    display A - Q * R
+      document.getElementById("qr_minus_a_textarea").style.color = "blue";
+      document.getElementById("qr_minus_a_textarea").value +=
+        "A - Q * R = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        var str3 = new String();
+        for ( var j = 0; j < n - 1; j ++ ) {
+          var sj3 = scientificFormat( P.getEntry( i, j ) );
+          while ( sj3.length < cwp[ j ] ) sj3 += ' ';
+          str3 += sj3 + " ";
+        }
+        str3 += scientificFormat( P.getEntry( i, n - 1 ) );
+        document.getElementById("qr_minus_a_textarea").value += str3
+          + "\n";
+      }
+//    compute I - Q^T * Q
+      var E = new JSMatrix( m, m, 0 );
+      for ( var j = 0; j < m; j ++ ) E.setEntry( i, i, 1. );
+      for ( var j = 0; j < m; j ++ ) {
+        for ( var i = 0; i < m; i ++ ) {
+          var sum = Blas1.ddot( m, Q.dataArray(), 1, Q.dataArray(), 1,
+            i * m, j * m );
+          if ( i == j ) sum -= 1;
+          E.setEntry( i, j, - sum );
+        }
+      }
+//    compute entry lengths
+      var cwe = new Array( m );
+      for ( var j = 0; j < m; j ++ ) {
+        cwe[ j ] = 0;
+        for ( var i = 0; i < m; i ++ ) {
+          cwe[ j ] = Math.max( cwe[ j ],
+            scientificFormat( E.getEntry( i, j ) ).length);
+        }
+      }
+//    display I - Q^T * Q
+      document.getElementById("qtq_minus_i_textarea").style.color = "blue";
+      document.getElementById("qtq_minus_i_textarea").value +=
+        "I - Q^T * Q = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        var str3 = new String();
+        for ( var j = 0; j < m - 1; j ++ ) {
+          var sj3 = scientificFormat( E.getEntry( i, j ) );
+          while ( sj3.length < cwe[ j ] ) sj3 += ' ';
+          str3 += sj3 + " ";
+        }
+        str3 += scientificFormat( E.getEntry( i, m - 1 ) );
+        document.getElementById("qtq_minus_i_textarea").value += str3
+          + "\n";
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "leaving factorMatrix\n";
+    }
+
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    Enter matrix:
+    <input
+      type="text"
+      name="matrix_text"
+      value="1,1;1.e-10,0;0,1.e-10";
+      size="50"
+    >
+    <input
+      type="button"
+      value="Factor"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;factorMatrix();"
+    >
+    <br>
+    <textarea
+      id="qr_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="tau_factor_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+    <textarea
+      id="q_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="r_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="qr_minus_a_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="qtq_minus_i_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=100
+    >
+    </textarea>
+-->
+    <script language="javascript"> factorMatrix(); </script>
+  </BODY>
+</HTML>

@@ -1,0 +1,14 @@
+\begin{html}
+  <iframe
+    src="code/approximation/c1spline_error.html"
+    width=900
+    height=600
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/approximation/c1spline_error.html">c1spline_error.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

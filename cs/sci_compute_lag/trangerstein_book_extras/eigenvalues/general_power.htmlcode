@@ -1,0 +1,14 @@
+\begin{html}
+  <iframe
+    src="code/eigenvalues/general_power.html"
+    width=900
+    height=400
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/eigenvalues/general_power.html">general_power.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

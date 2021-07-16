@@ -1,0 +1,199 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Solving the quadratic equation </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2> 
+      Methods for solving \( a x^2 + b x + c = 0 \)
+    </h2>
+    <script language="javascript"> 
+      var a=1.;
+      var b=-2.;
+      var c=1.;
+
+      function solveQuadratic(previous) {
+        document.getElementById("quadratic_textarea").value="";
+        document.getElementById("quadratic_textarea").value+=
+          "solve using quadratic formula:\n";
+        a=Number(a);
+        b=Number(b);
+        c=Number(c);
+        if ( Math.abs(a) > 0. ) {
+          var disc2=b*b-4*a*c;
+          if (disc2>=0) {
+            disc2=Math.sqrt(disc2);
+            var rootp=(-b+disc2)/(2*a);
+            var rootm=(-b-disc2)/(2*a);
+            var maxerrp=Math.max(Math.abs(a*rootp*rootp),
+              Math.abs(b*rootp),Math.abs(c));
+            var maxerrm=Math.max(Math.abs(a*rootm*rootm),
+              Math.abs(b*rootm),Math.abs(c));
+            var errp=Math.abs((a*rootp+b)*rootp+c)/maxerrp;
+            var errm=Math.abs((a*rootm+b)*rootm+c)/maxerrm;
+            document.getElementById("quadratic_textarea").value+=
+              "  two real roots = " + rootp + " and " + rootm + "\n"
+              + "  relative errors in quadratic evaluated at roots are "
+              + errp + " and " + errm + "\n";
+
+          } else {
+            var real_part=-b/(2*a);
+            var imag_part=Math.sqrt(-disc2)/(2*a);
+            var max_err_real=Math.max(
+              Math.abs(a*real_part*real_part),
+              Math.abs(a*imag_part*imag_part),
+              Math.abs(b*real_part),Math.abs(c));
+            var max_err_imag=Math.max(
+              Math.abs(2*a*real_part*imag_part),
+              Math.abs(b*imag_part));
+            var err_real_part=Math.abs(
+              a*(real_part*real_part-imag_part*imag_part)
+              + b*real_part+c)/max_err_real;
+            var err_imag_part=
+              Math.abs((2*a*real_part+b)*imag_part)/max_err_imag;
+            document.getElementById("quadratic_textarea").value+=
+              "  complex roots: real part = " + real_part
+              + " imaginary part = " + imag_part + "\n"
+              + "  relative errors quadratic evaluated at roots are "
+              + err_real_part + " +- " + err_imag_part + "\n";
+          }
+        } else {
+          if (Math.abs()>0.) {
+            var root=-c/b;
+            var max_err=Math.max(Math.abs(a*root*root),
+              Math.abs(b*root),Math.abs(c));
+            var err=Math.abs((a*root+b)*root+c)/max_err;
+            document.getElementById("quadratic_textarea").value+=
+              "  one real root = " + root + "\n"
+              "  relative error quadratic evaluated at root is " + err
+              + "\n";
+          } else {
+            document.getElementById("quadratic_textarea").value+=
+              "  no root or arbitrary root : a = 0 = b\n";
+          }
+        }
+
+        document.getElementById("quadratic_textarea").value+=
+          "solve quadratic safely:\n";
+        var m=Math.max(Math.abs(a),Math.abs(b),Math.abs(c));
+        if (m <=0) {
+          document.getElementById("quadratic_textarea").value+=
+            "  zero quadratic: roots arbitrary\n";
+        } else {
+          m=Math.pow(2,Math.ceil(Math.log(m)/Math.log(2)));
+          var A = a / m;
+          var B = b / m;
+          var C = c / m;
+          if (Math.abs(A)>0) {
+            B /= - 2. * A;
+            C /= A;
+            var disc=B*B-C;
+            if (disc>=0) {
+              disc=Math.sqrt(disc);
+              var large=B+(B>0. ? disc : -disc);
+              var small=(Math.abs(large)>0 ? C/large : 0.);
+              var maxerrl=Math.max(Math.abs(a*large*large),
+                Math.abs(b*large),Math.abs(c));
+              var maxerrs=Math.max(Math.abs(a*small*small),
+                Math.abs(b*small),Math.abs(c));
+              var errl=Math.abs((a*large+b)*large+c)/maxerrl;
+              var errs=Math.abs((a*small+b)*small+c)/maxerrs;
+              document.getElementById("quadratic_textarea").value+=
+                "  two real roots = " + large + " and " + small + "\n"
+                + "  relative errors in quadratic evaluated at roots are "
+                + errl + " and " + errs + "\n";
+            } else {
+              var real_part=B;
+              var imag_part=Math.sqrt(-disc);
+              var max_err_real=Math.max(
+                Math.abs(a*real_part*real_part),
+                Math.abs(a*imag_part*imag_part),
+                Math.abs(b*real_part),Math.abs(c));
+              var max_err_imag=Math.max(
+                Math.abs(2*a*real_part*imag_part),
+                Math.abs(b*imag_part));
+              var err_real_part=
+                Math.abs(a*(real_part*real_part-imag_part*imag_part)
+                + b*real_part+c)/max_err_real;
+              var err_imag_part=
+                Math.abs((2*a*real_part+b)*imag_part)/max_err_imag;
+              document.getElementById("quadratic_textarea").value+=
+                "  complex roots: real part = " + real_part
+                + " imaginary part = " + imag_part + "\n"
+                + "  relative errors in quadratic evaluated at roots are "
+                + err_real_part + " +- " + err_imag_part + "\n";
+            }
+          } else {
+            if (Math.abs(B)>0) {
+              var root=C/B;
+              var max_err=Math.max(Math.abs(a*root*root),
+                Math.abs(b*root),Math.abs(c));
+              var err=Math.abs((a*root+b)*root+c)/max_err;
+              document.getElementById("quadratic_textarea").value+=
+                "  one real root = " + root + "\n"
+                "  relative error in quadratic evaluated at root is "
+                + err + "\n";
+            } else {
+              document.getElementById("quadratic_textarea").value+=
+                "  no root or arbitrary root : a = 0 = b\n";
+            }
+          }
+        }
+      }
+
+      function checkNumber(n) {
+        if (!isFinite(n)) {
+          alert("entered value is not a NUMBER");
+          return false;
+        }
+        return true;
+      }
+    </script>
+
+    Enter a
+    <input
+      type="number"
+      name="a"
+      value="1"
+      onchange="checkNumber(document.getElementsByName('a')[0].value);"
+      size=4
+    >
+    ,b
+    <input
+      type="number"
+      name="b"
+      value="-2"
+      onchange="checkNumber(document.getElementsByName('b')[0].value);"
+      size=4
+    >
+    and c
+    <input
+      type="number"
+      name="c"
+      value="1"
+      onchange="checkNumber(document.getElementsByName('c')[0].value);"
+      size=4
+    >
+    <input
+      type="button" 
+      value="Solve quadratic" 
+      onclick="a=document.getElementsByName('a')[0].value;b=document.getElementsByName('b')[0].value;c=document.getElementsByName('c')[0].value;solveQuadratic(true);"
+    >
+    <br>
+    <textarea
+      id="quadratic_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+<!--
+      placeholder="Change coefficient values and press Solve quadratic button."
+-->
+    <script language="javascript"> solveQuadratic(false); </script>
+  </BODY>
+  </HTML>
+  <html><head></head><body></body></html>

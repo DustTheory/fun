@@ -1,0 +1,495 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>Linear Multistep Methods</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    linear multistep methods to solve
+    $$y^\prime(t) = \lambda y(t), y(0) = 1$$
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var rate=1.;
+
+      var scheme = 0;
+      var order=1;
+      var coarse_number_steps = 1;
+      var number_refinements=0;
+      // Adams-Bashforth:0, Adams-Moulton:1, BDF:2, Explicit-midpoint:3
+
+      var lm_gamma=new Array(10);
+      var newton_tolerance=1.e-15;
+      var maxit=5;
+      var tstop=1.;
+      var y_init=1;
+      var y = Number.MAX_VALUE;
+      var yold = Number.MAX_VALUE;
+      var ratio=2;
+
+      var k = 0; // refinement number
+      var n = 1; // number of timesteps in current refinement
+      var step=0;
+      var ftable;
+      var ftable_old;
+      var log_error = Array(1);
+      var log_n = Array(1);
+      var emax = - Number.MAX_VALUE;
+      var emin = Number.MAX_VALUE;
+      var tmax = - Number.MAX_VALUE;
+      var tmin = Number.MAX_VALUE;
+      var ymax = - Number.MAX_VALUE;
+      var ymin = Number.MAX_VALUE;
+      var tarray;
+      var yarray;
+      var gt;
+      var gte;
+      var log10 = Math.log( 10. );
+
+      function f( y, t ) { return rate * y; }
+      function dfdy( y, t ) { return rate; }
+      function exact( t ) { return y_init * Math.exp( rate * t ); }
+      function adamsBashforthStartup() {
+        for ( var i = 0; i < order; i ++ ) {
+          lm_gamma[ i ] = 1.;
+          for ( var j = 0; j < i; j ++ ) {
+            lm_gamma[ i ]  -= lm_gamma[ j ] * 1. / ( i - j + 1 );
+          }
+        }
+      }
+      function adamsBashforth( dt, t, ftable ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering adamsBashforth\n";
+        var fold = f(y,t);
+//      document.getElementById("debug_textarea").value +=
+//        "dt,t,y,f = " + dt + " " + t + " " + y + " " + fold + "\n";
+        var temp = ftable[ order - 1 ];
+        ftable[ order - 1 ] = fold;
+        var sumf = fold;
+        for ( var i = 1; i <= Math.min( step, order - 1 ); i ++ ) {
+          fold = ftable[ order - i ] - temp;
+          temp = ftable[ order- 1 - i ];
+          ftable[ order - 1 - i ] = fold;
+          sumf += lm_gamma[ i ] * fold;
+        }
+        y += dt * sumf;
+//      document.getElementById("debug_textarea").value +=
+//        "ynew = " + y + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving adamsBashforth\n";
+      }
+      function adamsMoultonStartup() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering adamsMoultonStartup\n";
+        lm_gamma[ 0 ] = 1.;
+        for ( var i = 1; i < order; i ++ ) {
+          lm_gamma[ i ] = 0.;
+          for ( var j = 0; j < i; j ++ ) {
+            lm_gamma[ i ]  -= lm_gamma[ j ] * 1. / ( i - j + 1 );
+          }
+        }
+
+//      for ( var i = 0; i < order; i ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          "lm_gamma[ " + i + " ] = " + lm_gamma[ i ] + "\n";
+//      }
+//      document.getElementById("debug_textarea").value +=
+//        "leaving adamsMoultonStartup\n";
+      }
+      function adamsMoulton( dt, t, ftable, ftable_old ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering adamsMoulton\n";
+//      document.getElementById("debug_textarea").value +=
+//        "dt,t,y = " + dt + " " + t + " " + y + "\n";
+        var sum_gamma = 0.;
+        for ( var i = 0; i <= Math.min( step, order - 1 ); i ++ ) {
+          ftable_old[ i ] = ftable[ i ];
+          sum_gamma += lm_gamma[ i ];
+        }
+
+//      for ( var i = 0; i < order; i ++ ) {
+//        document.getElementById("debug_textarea").value +=
+//          "ftable_old[ " + i + " ] = " + ftable_old[ i ] + "\n";
+//      }
+//      document.getElementById("debug_textarea").value +=
+//        "sum_gamma = " + sum_gamma + "\n";
+
+        sum_gamma *= dt;
+        var converged = false;
+        var ynew = y;
+        var it = 0;
+        while ( ! converged && it <= maxit ) {
+          var fnew = f( ynew, t + dt );
+          var temp = ftable_old[ order - 1 ];
+          ftable[ order - 1 ] = fnew;
+          var sumf = fnew;
+
+//        document.getElementById("debug_textarea").value +=
+//          "\nit = " + it + "\n";
+//        document.getElementById("debug_textarea").value +=
+//          "fnew,temp,sumf = " + fnew + " " + temp + " " + sumf + "\n";
+
+          for ( var i = 1; i <= Math.min( step, order - 1 ); i ++ ) {
+            fnew = ftable[ order - i ] - temp;
+            temp = ftable_old[ order - 1 - i ];
+            ftable[ order- 1 - i ] = fnew;
+            sumf += lm_gamma[ i ] * ftable[ order - 1 - i ];
+//          document.getElementById("debug_textarea").value +=
+//            "fnew,temp,sumf = " + fnew + " " + temp + " " + sumf
+//            + "\n";
+          }
+
+//        for ( var i = 0; i < order; i ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            "ftable[ " + i + " ] = " + ftable[ i ] + "\n";
+//        }
+
+          var fmoulton = ynew - y - dt * sumf;
+          converged = Math.abs( fmoulton ) <= newton_tolerance
+            * Math.max( Math.abs( ynew ),
+                        dt * Math.abs( ftable[ order - 1 ] ) );
+          var dfmoultondy = 1. - sum_gamma * dfdy( ynew, t + dt );
+          ynew-= fmoulton / dfmoultondy;
+
+//        document.getElementById("debug_textarea").value +=
+//          "fmoulton,converged,dfmoultondy,ynew " + fmoulton + " "
+//          + converged + " " + dfmoultondy + " " + ynew + "\n";
+
+          it ++;
+        }
+        y = ynew;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving adamsMoulton\n";
+      }
+      function bdfStartup() {
+        lm_gamma[ 0 ] = 0.;
+        for ( var i = 1; i <= order; i ++ ) {
+          lm_gamma[ i ] = 1. / i;
+        }
+      }
+      function bdf( dt, t, ytable, ytable_old ) {
+        var sum_gamma = 0.;
+        for ( var i = 0; i <= order; i ++ ) {
+          ytable_old[ i ] = ytable[ i ];
+          sum_gamma += lm_gamma[ i ];
+        }
+        ytable_old[ order ] = y;
+        var converged = false;
+        var ynew = y;
+        var it = 0;
+        while ( ! converged && it <= maxit ) {
+          var fnew = f( ynew, t + dt );
+          var temp = ytable_old[ order ];
+          ytable[ order ] = ynew;
+          var sumy = 0.;
+          for ( var i = 1; i <= Math.min( step, order ); i ++ ) {
+            var ytnew = ytable[ order + 1 - i ] - temp;
+            temp = ytable_old[ order - i ];
+            ytable[ order - i ] = ytnew;
+            sumy += lm_gamma[ i ] * ytable[ order - i ];
+          }
+          var fbdf = sumy - dt * fnew;
+          converged = Math.abs( fbdf ) <= newton_tolerance
+            * Math.max( Math.abs( ynew ), dt * Math.abs( fnew ) );
+          var dfbdfdy = sum_gamma - dt * dfdy( ynew, t + dt );
+          ynew -= fbdf /dfbdfdy;
+          it ++;
+        }
+        y = ynew;
+      }
+      function explicitMidpoint( dt, t ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering explicitMidpoint\n";
+//      document.getElementById("debug_textarea").value +=
+//        "t,dt,yold,y = " + t + " " + dt + " " + yold + " " + y + "\n";
+        var ynew = yold + 2. * dt * f( y, t );
+        yold = y;
+        y = ynew;
+//      document.getElementById("debug_textarea").value +=
+//        "yold,y = " + yold + " " + y + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving explicitMidpoint\n";
+      }
+      function integrate() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering integrate\n";
+        t = 0;
+        y = y_init;
+        dt = tstop / n;
+        tmin = t;
+        tmax = t;
+        ymin = y_init;
+        ymax = y_init;
+        tarray = new Array( n + 1 );
+        yarray = new Array( n + 1 );
+        tarray[ 0 ] = t;
+        yarray[ 0 ] = y_init;
+        yold = exact( t - dt );
+        if ( scheme == 1 ) { // Adams-Moulton
+          ftable[ order - 1 ] = f( y, t );
+        } else if ( scheme == 2 ) { // BDF
+          ftable[ order ] = y;
+        }
+        for ( step = 0; step < n; step ++, t += dt ) {
+          if ( step <= order && ( scheme == 1 || scheme == 2 ) ) {
+//          cheat during startup to get correct order
+            y = exact( t + dt );
+//          document.getElementById("debug_textarea").value +=
+//            "exact = " + y + "\n";
+            switch ( scheme ) {
+              case 0: // Adams-Bashforth
+              case 1: // Adams-Moulton
+                var fnew = f( y, t + dt );
+                var temp = ftable[ order - 1 ];
+                ftable[ order - 1 ] = fnew;
+//              document.getElementById("debug_textarea").value +=
+//                "i,fnew = 0 " + fnew + "\n";
+                for ( var i = 1; i < step; i ++ ) {
+                  fnew = ftable[ order - i ] - temp;
+                  temp = ftable[ order - 1 - i ];
+                  ftable[ order - 1 - i ] = fnew;
+//                document.getElementById("debug_textarea").value +=
+//                  "i,fnew = " + i + " " + fnew + "\n";
+                }
+//              document.getElementById("debug_textarea").value +=
+//                "step,t,f,y = " + step + " " + t + " " + fnew + " " + y
+//                + "\n";
+                break;
+              case 2: // BDF
+                var temp = ftable[ order ];
+                ftable[ order ] = y;
+                for ( var i = 1; i < step; i ++ ) {
+                  var ytnew = ftable[ order + 1 - i ] - temp;
+                  temp = ftable[ order - i ];
+                  ftable[ order - i ] = ytnew;
+                }
+                break;
+            }
+          } else {
+            switch ( scheme ) {
+              case 1: // Adams-Moulton
+                adamsMoulton( dt, t, ftable, ftable_old );
+                break;
+              case 2: // BDF
+                bdf( dt, t, ftable, ftable_old );
+                break;
+              case 3: // explicit midpoint
+                explicitMidpoint( dt, t );
+                break;
+              default: // Adams-Bashforth
+                adamsBashforth( dt, t, ftable );
+                break;
+            }
+          }
+          if ( scheme == 3 && step == n - 1 ) {
+//          smoothing operation
+            y = 0.5 * ( y + yold + dt * f( y, t + dt ) );
+          }
+          tarray[ step + 1 ] = t + dt;
+          yarray[ step + 1 ] = y;
+          ymin = Math.min( ymin, y );
+          ymax = Math.max( ymax, y );
+        }
+
+        gt = new XYGraphTool( plot_canvas, "y vs t", "t", "y", tmin, tmax,
+          ymin, ymax );
+        gt.setBgColor("white");
+        gt.newPage();
+        gt.setFgColor("black");
+        gt.drawAxes();
+        gt.setFgColor("blue");
+        gt.beginDrawing();
+          gt.movePen( tarray[ 0 ], yarray[ 0 ] );
+          for ( var j = 1; j <= n; j ++ ) {
+            gt.drawLine( tarray[ j ], yarray[ j ] );
+          }
+        gt.endDrawing();
+        gt.setFgColor("red");
+        gt.beginDrawing();
+          gt.movePen( tarray[ 0 ], exact( tarray[ 0 ] ) );
+          for ( var j = 1; j <= n; j ++ ) {
+            gt.drawLine( tarray[ j ], exact( tarray[ j ] ) );
+          }
+        gt.endDrawing();
+        var answer = exact( tarray[ n ] );
+        var error = Math.abs( answer - yarray[ n ] );
+        if ( error <= 0 ) error = Math.abs( answer ) * 1.e-16;
+        log_error[ k ] = Math.log( error ) / log10;
+        log_n[ k ] = Math.log( n ) / log10;
+        emax = Math.max( emax, log_error[ k ] );
+        emin = Math.min( emin, log_error[ k ] );
+
+        if ( k > 0 ) {
+          gte = new XYGraphTool( error_canvas, "log(error) vs log(n)",
+            "log(n)", "log(error)", log_n[0], log_n[k], emin, emax );
+          gte.setBgColor("white");
+          gte.newPage();
+          gte.setFgColor("black");
+          gte.drawAxes();
+          gte.setFgColor("blue");
+          gte.beginDrawing();
+            gte.movePen( log_n[ 0 ], log_error[ 0 ] );
+            for ( var j = 1; j <= k; j ++ ) {
+              gte.drawLine( log_n[ j ], log_error[ j ] );
+            }
+          gte.endDrawing();
+        }
+        k ++;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving integrate\n";
+      }
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var radio_buttons =
+          document.getElementsByName("scheme_radiobox");
+        for ( var i = 0; i < radio_buttons.length; i ++ ) {
+          if ( radio_buttons[ i ].checked ) {
+            scheme = Number( radio_buttons[ i ].value );
+            break;
+          }
+        }
+        rate = Number( document.getElementById('rate_textarea').value );
+        order = Number( document.getElementById('order_textarea').value );
+        coarse_number_steps = Number(
+          document.getElementById('coarse_number_steps_textarea').value );
+
+        k = 0;
+        n = Math.max( order + 2, coarse_number_steps );
+        document.getElementById("debug_textarea").value =
+          "n = " + n + "\n";
+        switch ( scheme ) {
+          case 1: // Adams-Moulton
+            ftable = new Array( order );
+            ftable_old = new Array( order );
+            adamsMoultonStartup();
+            break;
+          case 2: // BDF
+            ftable = new Array( order + 1 );
+            ftable_old = new Array( order + 1 );
+            bdfStartup();
+            break;
+          case 3: // explicit midpoint
+            ftable = new Array(0);
+            ftable_old = new Array(0);
+            break;
+          case 0:
+            ftable = new Array( order );
+            ftable_old = new Array(0);
+            adamsBashforthStartup();
+            break;
+        }
+        emax = - Number.MAX_VALUE;
+        emin = Number.MAX_VALUE;
+        integrate();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function plotError() {
+        n *= 2;
+        document.getElementById("debug_textarea").value =
+          "n = " + n + "\n";
+        integrate();
+      }
+    </script>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <canvas id="error_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <fieldset>
+      <legend> Type of scheme: </legend>
+      <label for="adams_bashforth_option">
+        <input
+          type="radio"
+          checked value="0"
+          id="adams_bashforth_option_checkbox"
+          name="scheme_radiobox"
+        />
+        Adams-Bashforth
+      </label>
+      <label for="adams_moulton_option">
+        <input
+          type="radio"
+          value="1"
+          id="adams_moulton_option_checkbox"
+          name="scheme_radiobox"
+        />
+        Adams-Moulton
+      </label>
+      <label for="bdf_option">
+        <input
+          type="radio"
+          value="2"
+          id="bdf_option_checkbox"
+          name="scheme_radiobox"
+        />
+        Backward Differentiation Formula
+      </label>
+      <label for="explicit_midpoint_option">
+        <input
+          type="radio"
+          value="3"
+          id="explicit_midpoint_option_checkbox"
+          name="scheme_radiobox"
+        />
+        Explicit Midpoint
+      </label>
+    </fieldset>
+    <br>
+    scheme order:
+    <input
+      type="text"
+      name="order"
+      value="1"
+      size=2
+      id=order_textarea
+    >
+    <br>
+    number of steps for coarsest integration:
+    <input
+      type="text"
+      name="coarse_number_steps"
+      value="1"
+      size=20
+      id=coarse_number_steps_textarea
+    >
+    <br>
+    rate for differential equation y'(t) = rate * y(t):
+    <input
+      type="text"
+      name="rate"
+      value="1."
+      size=20
+      id=rate_textarea
+    >
+    <br>
+    <input
+      type="button"
+      value="Begin new refinement study"
+      onclick="onStart();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Double number of timesteps"
+      onclick="plotError();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

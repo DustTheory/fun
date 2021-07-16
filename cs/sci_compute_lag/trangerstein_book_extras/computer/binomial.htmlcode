@@ -1,0 +1,15 @@
+\begin{html}
+  <iframe
+    src="code/computer/binomial.html"
+    width=900
+    height=250
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/computer/binomial.html">binomial.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}
+

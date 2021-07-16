@@ -1,0 +1,1055 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Divide and Conquer Method for Symmetric Tridiagonal Matrix </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Divide and Conquer Method for Symmetric Tridiagonal Matrix </h2>
+    <script src=../linear_algebra/Blas1.js></script>
+    <script src=../linear_algebra/Blas2.js></script>
+    <script src=../linear_algebra/Blas3.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/LaPack1.js></script>
+    <script src=../linear_algebra/LaPack2.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+    var diagonal_text = "6;5;4;3;2";
+    var subdiagonal_text = "-1;-1;-1;-1";
+    var diag = new JSVector();
+    var subdiag = new JSVector();
+
+    var n = undefined;
+    var Z = undefined;
+    var smlsiz = undefined;
+    var eps = undefined;
+    var start = undefined;
+    var storez = undefined;
+
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function printMatrix( l, lend ) {
+      document.getElementById("debug_textarea").value +=
+        "  diagonal = ";
+      for (var ii = 0; ii < n; ii ++ ) {
+        document.getElementById("debug_textarea").value +=
+          diag.getEntry( ii ) + " ";
+      }
+      document.getElementById("debug_textarea").value +=
+        "\n  subdiagonal = ";
+      for (var ii = 0; ii < n-1; ii ++ ) {
+        document.getElementById("debug_textarea").value +=
+          subdiag.getEntry( ii ) + " ";
+      }
+      document.getElementById("debug_textarea").value += "\n";
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function dlaed3( k, n, n1, d, Q, ldq, rho, dlamda, Q2, indx,
+    ctot, w, s, info,
+    ioffd, ioffq, ioffdlamda, ioffq2, ioffindx, ioffctot, ioffw, ioffs ) {
+//    document.getElementById("debug_textarea").value +=
+//      "\nentering dlaed3, k,n,n1,ldq,rho = " + k + " " + n + " " + n1
+//      + " " + ldq + " " + rho + "\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+//    document.getElementById("debug_textarea").value += "dlamda = ";
+//    for ( jj = 0; jj < k; jj ++ ) {
+//      var dlamdaj = dlamda[ ioffdlamda + jj ];
+//      document.getElementById("debug_textarea").value += dlamdaj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+
+//    document.getElementById("debug_textarea").value += "indx = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxj = indx[ ioffindx + jj ];
+//      document.getElementById("debug_textarea").value += indxj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+//    document.getElementById("debug_textarea").value += "ctot = ";
+//    for ( jj = 0; jj < 4; jj ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        ctot[ ioffctot + jj ] + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+//    document.getElementById("debug_textarea").value += "w = ";
+//    for ( jj = 0; jj < k; jj ++ ) {
+//      var wj = w[ ioffw + jj ];
+//      document.getElementById("debug_textarea").value += wj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+//    document.getElementById("debug_textarea").value += "Q2 = ";
+//    for ( ii = 0; ii < n1; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Q2j = Q2[ ioffq2 + ii + jj * n1 ];
+//        document.getElementById("debug_textarea").value += Q2j + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+//    document.getElementById("debug_textarea").value += "Q2 = ";
+//    var ijq2 = n1 * n1;
+//    for ( ii = 0; ii < n - n1; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Q2j = Q2[ ioffq2 + ijq2 + ii + jj * ( n - n1 ) ];
+//        document.getElementById("debug_textarea").value += Q2j + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+
+//    throw new Error("not tested");
+      if ( k < 0 ) info.setValue( -1 );
+      else if ( n < k ) info.setValue( -2 );
+      else if ( ldq < Math.max( 1, n ) ) info.setValue( -6 );
+      if ( info.getValue() != 0 ) {
+        Blas2.xerbla( 'dlaed3', - info.getValue() );
+        return;
+      }
+      if ( k == 0 ) return;
+      for( var i = 1; i <= k; i ++ ) { // loop 10
+        dlamda[ ioffdlamda + i - 1 ] =
+          LaPack0.dlamc3( dlamda[ ioffdlamda + i - 1 ],
+          dlamda[ ioffdlamda + i - 1 ] ) - dlamda[ ioffdlamda + i - 1 ];
+      }
+      for ( var j = 1; j <= k; j ++ ) { // loop 20
+        var dlam = new NumberReference( d[ ioffd + j - 1 ] );
+        LaPack2.dlaed4( k, j, dlamda, w, Q, rho, dlam, info,
+          ioffdlamda, ioffw, ioffq + ( j - 1 ) * ldq );
+        d[ ioffd + j - 1 ] = dlam.getValue();
+        if ( info.getValue() != 0 ) return;
+
+        var dj = d[ ioffd + j - 1 ]
+//      document.getElementById("debug_textarea").value +=
+//        "d[ " + j + " ] = " + dj + "\n";
+//      document.getElementById("debug_textarea").value += "Qj = ";
+//      for ( ii = 0; ii < k; ii ++ ) {
+//        var Qij = Q[ ioffq + ii + (j - 1 ) * ldq ];
+//        document.getElementById("debug_textarea").value += Qij + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+      }
+
+      if ( k == 2 ) {
+        for ( j = 1; j <= k; j ++ ) { // loop 30
+          w[ ioffw ] = Q[ ioffq + ( j - 1 ) * ldq ];
+          w[ ioffw + 1 ] = Q[ ioffq + 1 + ( j - 1 ) * ldq ];
+          var ii = indx[ ioffindx ];
+          Q[ ioffq + ( j - 1 ) * ldq ] = w[ ioffw + ii - 1 ];
+          ii = indx[ ioffindx + 1 ];
+          Q[ ioffq + 1 + ( j - 1 ) * ldq ] = w[ ioffw + ii - 1 ];
+        }
+//      document.getElementById("debug_textarea").value += "k==2, Q = ";
+//      for ( ii = 0; ii < 2; ii ++ ) {
+//        for ( jj = 0; jj < k; jj ++ ) {
+//          var Qij = Q[ ioffq + ii + jj * ldq ];
+//          document.getElementById("debug_textarea").value += Qij + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+      }
+      if ( k != 1 && k != 2 ) {
+        Blas1.dcopy( k, w, 1, s, 1, ioffw, ioffs );
+        Blas1.dcopy( k, Q, ldq + 1, w, 1, ioffq, ioffw );
+        for ( j = 1; j <= k; j ++ ) { // loop 60
+          for ( i = 1; i <= j - 1; i ++ ) { // loop 40
+            w[ ioffw + i - 1 ] *= Q[ ioffq + i - 1 + ( j - 1 ) * ldq ]
+              / ( dlamda[ ioffdlamda + i - 1 ]
+                - dlamda[ ioffdlamda + j - 1 ] );
+          }
+          for ( i = j + 1; i <= k; i ++ ) { // loop 50
+            w[ ioffw + i - 1 ] *= Q[ ioffq + i - 1 + ( j - 1 ) * ldq ]
+              / ( dlamda[ ioffdlamda + i - 1 ]
+                - dlamda[ ioffdlamda + j - 1 ] );
+          }
+        }
+        for ( i = 1; i <= k; i ++ ) { // loop 70
+          w[ ioffw + i - 1 ] = ( s[ ioffs + i - 1 ] >= 0. ?
+            Math.sqrt( - w[ ioffw + i - 1 ] ) :
+            - Math.sqrt( - w[ ioffw + i - 1 ] ) );
+        }
+        for ( j = 1; j <= k; j ++ ) { // loop 100
+          for ( i = 1; i <= k; i ++ ) { // loop 80
+            s[ ioffs + i - 1 ] = w[ ioffw + i - 1 ]
+              / Q[ ioffq + i - 1 + ( j - 1 ) * ldq ];
+          }
+          var temp = Blas1.dnrm2( k, s, 1, ioffs );
+          for ( i = 1; i <= k; i ++ ) { // loop 90
+            ii = indx[ ioffindx + i - 1 ];
+            Q[ ioffq + i - 1 + ( j - 1 ) * ldq ] =
+              s[ ioffs + ii - 1 ] / temp;
+          }
+        }
+      }
+      var n2 = n - n1; // 100
+      var n12 = ctot[ ioffctot ] + ctot[ ioffctot + 1 ];
+      var n23 = ctot[ ioffctot + 1 ] + ctot[ ioffctot + 2 ];
+      LaPack0.dlacpy( 'A', n23, k, Q, ldq, s, n23,
+        ioffq + ctot[ ioffctot ], ioffs );
+
+//    document.getElementById("debug_textarea").value +=
+//      "after dlacpy n23, s = ";
+//    for ( ii = 0; ii < n23; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Sij = s[ ioffs + ii + jj * n23 ];
+//        document.getElementById("debug_textarea").value += Sij + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+
+      var iq2 = n1 * n12 + 1;
+      if ( n23 != 0 ) {
+//      document.getElementById("debug_textarea").value +=
+//        "calling dgemm\n";
+        Blas3.dgemm( 'N', 'N', n2, k, n23, 1., Q2, n2, s, n23, 0., Q, ldq,
+          ioffq2 + iq2 - 1, ioffs, ioffq + n1 );
+      } else {
+//      document.getElementById("debug_textarea").value +=
+//        " calling dlaset\n";
+        LaPack0.dlaset( 'A', n2, k, 0., 0., Q, ldq, ioffq + n1 );
+      }
+
+//    document.getElementById("debug_textarea").value +=
+//      "after dgemm n2, Q = ";
+//    for ( ii = n1; ii < n1+n2; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Qij = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qij + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n";
+//    }
+
+      LaPack0.dlacpy( 'A', n12, k, Q, ldq, s, n12, ioffq, ioffs );
+
+//    document.getElementById("debug_textarea").value +=
+//      "after dlacpy n12, s = ";
+//    for ( ii = 0; ii < n12; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Sij = s[ ioffs + ii + jj * n12 ];
+//        document.getElementById("debug_textarea").value += Sij + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+
+      if ( n12 != 0 ) {
+        Blas3.dgemm( 'N', 'N', n1, k, n12, 1., Q2, n1, s, n12, 0., Q, ldq,
+          ioffq2, ioffs, ioffq );
+      } else {
+        LaPack0.dlaset( 'A', n1, k, 0., 0., Q, ldq, ioffq );
+      }
+
+//    document.getElementById("debug_textarea").value +=
+//      "after dgemm n1, Q = ";
+//    for ( ii = 0; ii < n1; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Qij = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qij + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+
+//    document.getElementById("debug_textarea").value +=
+//      "leaving dlaed3\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "dlamda = ";
+//    for ( jj = 0; jj < k; jj ++ ) {
+//      var dlamdaj = dlamda[ ioffdlamda + jj ];
+//      document.getElementById("debug_textarea").value += dlamdaj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "w = ";
+//    for ( jj = 0; jj < k; jj ++ ) {
+//      var wj = w[ ioffw + jj ];
+//      document.getElementById("debug_textarea").value += wj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "s = ";
+//    for ( jj = 0; jj < ( n1 + 1 ) * k; jj ++ ) {
+//      var sj = s[ ioffs + jj ];
+//      document.getElementById("debug_textarea").value += sj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "Q = ";
+//    for ( ii = 0; ii < n; ii ++ ) {
+//      for ( jj = 0; jj < k; jj ++ ) {
+//        var Qj = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qj + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function dlaed2( k, n, n1, d, Q, ldq, indxq, rho, z, dlamda, w,
+    q2, indx, indxc, indxp, coltyp, info,
+    ioffd, ioffq, ioffindxq, ioffz, ioffdlamda, ioffw, ioffq2, ioffindx,
+    ioffindxc, ioffindxp, ioffcoltyp ) {
+//    document.getElementById("debug_textarea").value +=
+//      "\nentering dlaed2, n,n1,ldq,rho = " + n + " " + n1 + " " + ldq
+//      + " " + rho.getValue() + "\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxq = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxqj = indxq[ ioffindxq + jj ];
+//      document.getElementById("debug_textarea").value += indxqj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "z = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var zj = z[ ioffz + jj ];
+//      document.getElementById("debug_textarea").value += zj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "Q = ";
+//    for ( ii = 0; ii < n; ii ++ ) {
+//      for ( jj = 0; jj < n; jj ++ ) {
+//        var Qj = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qj + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+
+      var ctot = new Array(4);
+      var psm = new Array(4);
+      info.setValue( 0 );
+      if ( n < 0 ) info.setValue( -2 );
+      else if ( ldq < Math.max( 1, n ) ) info.setValue( -6 );
+      else if ( Math.min( 1, Math.floor( n / 2 ) ) > n1 ||
+      Math.floor( n / 2 ) < n1 ) {
+        info.setValue( -3 );
+      }
+      if ( info.getValue() != 0 ) {
+        Blas2.xerbla( 'dlaed2', - info.getValue() );
+        return;
+      }
+      if ( n == 0 ) return;
+      var n2 = n - n1;
+      var n1p1 = n1 + 1;
+      if ( rho.getValue() < 0. ) {
+        Blas1.dscal( n2, -1., z, 1, ioffz + n1p1 - 1 );
+      }
+      var t = 1. / Math.sqrt( 2. );
+      Blas1.dscal( n, t, z, 1, ioffz );
+      rho.setValue( Math.abs( 2. * rho.getValue() ) );
+      for ( i = n1p1; i <= n; i ++ ) { // loop 10
+        indxq[ ioffindxq + i - 1 ] += n1;
+      }
+      for ( var i = 1; i <= n; i ++ ) { // loop 20
+        dlamda[ ioffdlamda + i - 1 ] =
+          d[ ioffd + indxq[ ioffindxq + i - 1 ] - 1 ];
+      }
+      LaPack0.dlamrg( n1, n2, dlamda, 1, 1, indxc, ioffdlamda, ioffindxc );
+      for ( i = 1; i <= n; i ++ ) { // loop 30
+        indx[ ioffindx + i - 1 ] =
+          indxq[ ioffindxq + indxc[ ioffindxc + i - 1 ] - 1 ];
+      }
+      var imax = Blas1.idamax( n, z, 1, ioffz );
+      var jmax = Blas1.idamax( n, d, 1, ioffd );
+      var eps = LaPack0.dlamch( 'Epsilon' );
+      var tol = 8. * eps * Math.max( Math.abs(
+        d[ ioffd + jmax - 1 ] ), Math.abs( z[ ioffz + imax - 1 ] ) )
+      if ( rho.getValue() * Math.abs( z[ ioffz + imax - 1 ] ) <= tol ) {
+        k.setValue( 0 );
+        var iq2 = 1;
+        for ( var j = 1; j <= n; j ++ ) { // loop 40
+          i = indx[ ioffindx + j - 1 ];
+          Blas1.dcopy( n, Q, 1, q2, 1, ioffq + ( i - 1 ) * ldq,
+            ioffq2 + iq2 - 1 );
+          dlamda[ ioffdlamda + j - 1 ] = d[ ioffd + i - 1 ];
+          iq2 += n;
+        }
+        LaPack0.dlacpy( 'A', n, n, q2, n, Q, ldq, ioffq2, ioffq );
+        Blas1.dcopy( n, dlamda, 1, d, 1, ioffdlamda, ioffd );
+        return;
+      }
+      for ( i = 1; i <= n1; i ++ ) coltyp[ ioffcoltyp + i - 1 ] = 1; // 50
+      for ( i = n1p1; i <= n; i ++ ) coltyp[ ioffcoltyp + i - 1 ] = 3; //60
+      k.setValue( 0 );
+      var k2 = n + 1;
+      var goto100 = false;
+      for ( j = 1; j <= n; j ++ ) { // loop 70
+        var nj = indx[ ioffindx + j - 1 ];
+        if ( rho.getValue() * Math.abs( z[ ioffz + nj - 1 ] ) <= tol ) {
+          k2 --;
+          coltyp[ ioffcoltyp + nj - 1 ] = 4;
+          indxp[ ioffindxp + k2 - 1 ] = nj;
+          if ( j == n ) {
+            goto100 = true;
+            break;
+          }
+        } else {
+          var pj = nj;
+          break;
+        }
+      }
+      if ( ! goto100 ) {
+        while ( true ) { // 80
+          j ++;
+          nj = indx[ ioffindx + j - 1 ];
+          if ( j > n ) break;
+          if ( rho.getValue() * Math.abs( z[ ioffz + nj - 1 ] ) <= tol ) {
+            k2 --;
+            coltyp[ ioffcoltyp + nj - 1 ] = 4;
+            indxp[ ioffindxp + k2 - 1 ] = nj;
+          } else {
+            var s = z[ ioffz + pj - 1 ];
+            var c = z[ ioffz + nj - 1 ];
+            var tau = LaPack0.dlapy2( c, s );
+            t = d[ ioffd + nj - 1 ] - d[ ioffd + pj - 1];
+            c /= tau;
+            s = -s / tau;
+            if ( Math.abs( t * c * s ) <= tol ) {
+              z[ ioffz + nj - 1 ] = tau;
+              z[ ioffz + pj - 1 ] = 0.;
+              if ( coltyp[ ioffcoltyp + nj - 1 ] !=
+              coltyp[ ioffcoltyp + pj - 1 ] ) {
+                coltyp[ ioffcoltyp + nj - 1 ] = 2;
+              }
+              coltyp[ ioffcoltyp + pj - 1 ] = 4;
+              Blas1.drot( n, Q, 1, Q, 1, c, s, ioffq + ( pj - 1 ) * ldq,
+                ioffq + ( nj - 1 ) * ldq );
+              t = d[ ioffd + pj - 1 ] * c * c + d[ ioffd + nj - 1 ] * s * s;
+              d[ ioffd + nj - 1 ] = d[ ioffd + pj - 1 ] * s * s
+                + d[ ioffd + nj - 1 ] * c * c;
+              d[ ioffd + pj - 1 ] = t;
+              k2 --;
+              i = 1;
+              while ( true ) { // 90
+                if ( k2 + i <= n ) {
+                  if ( d[ ioffd + pj - 1 ] <
+                  d[ ioffd + indxp[ ioffindxp + k2 + i - 1 ] -1 ] ) {
+                    indxp[ ioffindxp + k2 + i - 2 ] =
+                      indxp[ ioffindxp + k2 + i - 1 ];
+                    indxp[ ioffindxp + k2 + i - 1 ] = pj;
+                    i ++;
+                    continue;
+                  } else {
+                    indxp[ ioffindxp + k2 + i - 2 ] = pj;
+                    break;
+                  }
+                } else {
+                  indxp[ ioffindxp + k2 + i - 2 ] = pj;
+                  break;
+                }
+              }
+              pj = nj;
+            } else {
+              k.setValue( k.getValue() + 1 );
+              dlamda[ ioffdlamda + k.getValue() - 1 ] =
+                d[ ioffd + pj - 1 ];
+              w[ ioffw + k.getValue() - 1 ] = z[ ioffz + pj - 1 ];
+              indxp[ ioffindxp + k.getValue() - 1 ] = pj;
+              pj = nj;
+            }
+          }
+        }
+      } // 100
+      k.setValue( k.getValue() + 1 );
+      dlamda[ ioffdlamda + k.getValue() - 1 ] = d[ ioffd + pj - 1 ];
+      w[ ioffw + k.getValue() - 1 ] = z[ ioffz + pj - 1 ];
+      indxp[ ioffindxp + k.getValue() - 1 ] = pj;
+      for ( j = 1; j<= 4; j ++ ) ctot[ j - 1 ] = 0; // loop 110
+      for ( j = 1; j <= n; j ++ ) { // loop 120
+        var ct = coltyp[ ioffcoltyp + j - 1 ];
+        ctot[ ct - 1 ] ++;
+      }
+      psm[ 0 ] = 1;
+      psm[ 1 ] = 1 + ctot[ 0 ];
+      psm[ 2 ] = psm[ 1 ] + ctot[ 1 ];
+      psm[ 3 ] = psm[ 2 ] + ctot[ 2 ];
+      k.setValue( n - ctot[ 3 ] );
+      for ( j = 1; j <= n; j ++ ) { // loop 130
+        var js = indxp[ ioffindxp + j - 1 ];
+        ct = coltyp[ ioffcoltyp + js - 1 ];
+        indx[ ioffindx + psm[ ct - 1 ] - 1 ] = js;
+        indxc[ ioffindxc + psm[ ct - 1 ] - 1 ] = j;
+        psm[ ct - 1 ] ++;
+      } // 130
+      i = 1;
+      var iq1 = 1;
+      iq2 = 1 + ( ctot[ 0 ] + ctot[ 1 ] ) * n1;
+      for ( j = 1; j <= ctot[ 0 ]; j ++ ) { // loop 140
+        js = indx[ ioffindx + i - 1 ];
+        Blas1.dcopy( n1, Q, 1, q2, 1, ioffq + ( js - 1 ) * ldq,
+          ioffq2 + iq1 - 1 );
+        z[ ioffz + i - 1 ] = d[ ioffd + js - 1 ];
+        i ++;
+        iq1 += n1;
+      } // 140
+      for ( j = 1; j <= ctot[ 1 ]; j ++ ) { // loop 150
+        js = indx[ ioffindx + i - 1 ];
+        Blas1.dcopy( n1, Q, 1, q2, 1, ioffq + ( js - 1 ) * ldq,
+          ioffq2 + iq1 - 1 );
+        Blas1.dcopy( n2, Q, 1, q2, 1, ioffq + n1 + ( js - 1 ) * ldq,
+          ioffq2 + iq2 - 1 );
+        z[ ioffz + i - 1 ] = d[ ioffd + js - 1 ];
+        i ++;
+        iq1 += n1;
+        iq2 += n2;
+      } // 150
+      for ( j = 1; j <= ctot[ 2 ]; j ++ ) { // loop 160
+        js = indx[ ioffindx + i - 1 ];
+        Blas1.dcopy( n2, Q, 1, q2, 1, ioffq + n1 + ( js - 1 ) * ldq,
+          ioffq2 + iq2 - 1 );
+        z[ ioffz + i - 1 ] = d[ ioffd + js - 1 ];
+        i ++;
+        iq2 += n2;
+      } // 160
+      iq1 = iq2;
+      for ( j = 1; j <= ctot[ 3 ]; j ++ ) { // loop 170
+        js = indx[ ioffindx + i - 1 ];
+        Blas1.dcopy( n, Q, 1, q2, 1, ioffq + ( js - 1 ) * ldq,
+          ioffq2 + iq2 - 1 );
+        iq2 += n;
+        z[ ioffz + i - 1 ] = d[ ioffd + js - 1 ];
+        i ++;
+      }
+      if ( k.getValue() < n ) {
+        LaPack0.dlacpy( 'A', n, ctot[ 3 ], q2, n, Q, ldq,
+          ioffq2 + iq1 - 1, ioffq + k.getValue() * ldq );
+        Blas1.dcopy( n - k.getValue(), z, 1, d, 1, ioffz + k.getValue(),
+          ioffd + k.getValue() );
+      }
+      for ( j = 1; j <= 4; j ++ ) { // loop 180
+        coltyp[ ioffcoltyp + j - 1 ] = ctot[ j - 1 ];
+      }
+
+//    document.getElementById("debug_textarea").value +=
+//      "leaving dlaed2\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxq = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxqj = indxq[ ioffindxq + jj ];
+//      document.getElementById("debug_textarea").value += indxqj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "dlamda = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dlamdaj = dlamda[ ioffdlamda + jj ];
+//      document.getElementById("debug_textarea").value += dlamdaj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "w = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var wj = w[ ioffw + jj ];
+//      document.getElementById("debug_textarea").value += wj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "q2 = ";
+//    for ( jj = 0; jj < n1 * n1 + ( n - n1 ) * ( n - n1 ); jj ++ ) {
+//      var q2j = q2[ ioffq2 + jj ];
+//      document.getElementById("debug_textarea").value += q2j + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indx = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxj = indx[ ioffindx + jj ];
+//      document.getElementById("debug_textarea").value += indxj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxc = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxcj = indxc[ ioffindxc + jj ];
+//      document.getElementById("debug_textarea").value += indxcj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxp = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxpj = indxp[ ioffindxp + jj ];
+//      document.getElementById("debug_textarea").value += indxpj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "coltyp = ";
+//    for ( jj = 0; jj < 4; jj ++ ) {
+//      var coltypj = coltyp[ ioffcoltyp + jj ];
+//      document.getElementById("debug_textarea").value += coltypj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "Q = ";
+//    for ( ii = 0; ii < n; ii ++ ) {
+//      for ( jj = 0; jj < n; jj ++ ) {
+//        var Qj = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qj + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function dlaed1(n, d, Q, ldq, indxq, rho, cutpnt,
+    work, iwork, info, ioffd, ioffq, ioffindxq, ioffwork, ioffiwork ) {
+//    document.getElementById("debug_textarea").value +=
+//      "\nentering dlaed1, n,ldq,rho,cutpnt = " + n + " " + ldq + " "
+//      + rho + " " + cutpnt + "\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxq = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxqj = indxq[ ioffindxq + jj ];
+//      document.getElementById("debug_textarea").value += indxqj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "Q = ";
+//    for ( ii = 0; ii < n; ii ++ ) {
+//      for ( jj = 0; jj < n; jj ++ ) {
+//        var Qj = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qj + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+
+      info.setValue( 0 );
+      if ( n < 0 ) info.setValue( -1 );
+      else if ( ldq < Math.max( 1, n ) ) info.setValue( -4 );
+      else if ( Math.min( 1, Math.floor( n / 2 ) ) > cutpnt ||
+      Math.floor( n / 2 ) < cutpnt ) {
+        info.setValue( -7 );
+      }
+      if ( info.getValue() != 0 ) {
+        Blas2.xerbla( 'dlaed1', - info.getValue() );
+        return;
+      }
+      if ( n == 0 ) return;
+      var iz = 1;
+      var idlmda = iz + n;
+      var iw = idlmda + n;
+      var iq2 = iw + n;
+      var indx = 1;
+      var indxc = indx + n;
+      var coltyp = indxc + n;
+      var indxp = coltyp + n;
+      Blas1.dcopy( cutpnt, Q, ldq, work, 1, ioffq + cutpnt - 1,
+        ioffwork + iz - 1 );
+      var zpp1 = cutpnt + 1;
+      Blas1.dcopy( n - cutpnt, Q, ldq, work, 1,
+        ioffq + zpp1 - 1 + ( zpp1 - 1 ) * ldq,
+        ioffwork + iz + cutpnt - 1 );
+      var k = new IntReference();
+      var rhoref = new NumberReference( rho );
+      dlaed2( k, n, cutpnt, d, Q, ldq, indxq, rhoref, work, work,
+        work, work, iwork, iwork, iwork, iwork,
+        info, ioffd, ioffq, ioffindxq, ioffwork + iz - 1,
+        ioffwork + idlmda - 1, ioffwork + iw - 1, ioffwork + iq2 - 1,
+        ioffiwork + indx - 1, ioffiwork + indxc - 1, ioffiwork + indxp - 1,
+        ioffiwork + coltyp - 1 );
+
+//    document.getElementById("debug_textarea").value +=
+//      "after dlaed2, ctot = ";
+//    for ( var ii = 0; ii < 4; ii ++ ) {
+//      var coltypi = iwork[ ioffiwork + coltyp - 1 + ii ];
+//      document.getElementById("debug_textarea").value +=
+//        coltypi + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+
+      rho = rhoref.getValue();
+      if ( info.getValue() != 0 ) return;
+      if ( k.getValue() != 0 ) {
+        var iss = ( iwork[ ioffiwork + coltyp - 1 ]
+          + iwork[ ioffiwork + coltyp ] ) * cutpnt
+          + ( iwork[ ioffwork + coltyp ] + iwork[ ioffwork + coltyp + 1 ] )
+          * ( n - cutpnt ) + iq2;
+//      function dlaed3( k, n, n1, d, Q, ldq, rho,
+//        dlamda, Q2, indx, ctot, w, s, info,
+//        ioffd, ioffq,
+//        ioffdlamda, ioffq2, ioffindx, ioffcoltyp, ioffw, ioffs )
+        dlaed3( k.getValue(), n, cutpnt, d, Q, ldq, rho,
+          work, work, iwork, iwork, work, work, info,
+          ioffd, ioffq, ioffwork + idlmda - 1, ioffwork + iq2 - 1,
+          ioffiwork + indxc - 1, ioffiwork + coltyp - 1, ioffwork + iw - 1,
+          ioffwork + iss - 1 );
+        if ( info.getValue() != 0 ) return;
+        var n1 = k.getValue();
+        var n2 = n - k.getValue();
+        LaPack0.dlamrg( n1, n2, d, 1, -1, indxq, ioffd, ioffindxq );
+      } else {
+        for ( var i = 1; i <= n; i ++ ) indxq[ ioffindxq + i - 1 ] = i;
+      }
+
+//    document.getElementById("debug_textarea").value +=
+//      "leaving dlaed1\n";
+//    document.getElementById("debug_textarea").value += "d = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var dj = d[ ioffd + jj ];
+//      document.getElementById("debug_textarea").value += dj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "indxq = ";
+//    for ( jj = 0; jj < n; jj ++ ) {
+//      var indxqj = indxq[ ioffindxq + jj ];
+//      document.getElementById("debug_textarea").value += indxqj + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n"
+//    document.getElementById("debug_textarea").value += "Q = ";
+//    for ( ii = 0; ii < n; ii ++ ) {
+//      for ( jj = 0; jj < n; jj ++ ) {
+//        var Qj = Q[ ioffq + ii + jj * ldq ];
+//        document.getElementById("debug_textarea").value += Qj + " ";
+//      }
+//      document.getElementById("debug_textarea").value += "\n"
+//    }
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function dlaed0( qsiz, n, d, e, Q, ldq, Qstore,
+    ldqs, work, iwork, info, ioffd, ioffe, ioffq, ioffqstore, ioffwork,
+    ioffiwork ) {
+//    document.getElementById("debug_textarea").value +=
+//      "\nentering dlaed0, n,ioffd,ioffe = " + n + " " + ioffd + " "
+//      + ioffe + "\n";
+      printMatrix();
+
+//    var smlsiz = 25;
+      info.setValue( 0 );
+      if ( n < 0 ) info.setValue( -3 );
+      else if ( ldq < Math.max( 1, n ) ) info.setValue( -7 );
+      else if ( ldqs < Math.max( 1, n ) ) info.setValue( -9 );
+      if ( info.getValue() != 0 ) {
+        Blas2.xerbla( 'dlaed0', - info.getValue() );
+        return;
+      }
+      if ( n == 0 ) return;
+      iwork[ ioffiwork ] = n;
+      var subpbs = 1;
+      var tlvls = 0;
+      while ( iwork[ ioffiwork + subpbs - 1 ] > smlsiz ) { // 10
+        for ( var j = subpbs; j >= 1; j -- ) { // loop 20
+          iwork[ ioffiwork + 2 * j - 1 ] =
+            Math.floor( ( iwork[ ioffiwork + j - 1 ] + 1 ) / 2 );
+          iwork[ ioffiwork + 2 * j - 2 ] =
+            Math.floor( iwork[ ioffiwork + j - 1 ] / 2 );
+        }
+        tlvls ++;
+        subpbs *= 2;
+      }
+      for ( j = 2; j <= subpbs; j ++ ) { // loop 30
+        iwork[ ioffiwork + j - 1 ] += iwork[ ioffiwork + j - 2 ];
+      }
+
+      document.getElementById("debug_textarea").value +=
+        "\npartition after indices = ";
+      for ( j = 0; j < subpbs; j ++ ) {
+        var iwj = iwork[ ioffiwork + j ];
+        document.getElementById("debug_textarea").value += iwj + " ";
+      }
+      document.getElementById("debug_textarea").value += "\n"
+
+      var spm1 = subpbs - 1;
+      for ( var i = 1; i <= spm1; i ++ ) { // loop 40
+        var submat = iwork[ ioffiwork + i - 1 ] + 1;
+        var smm1 = submat - 1;
+        d[ ioffd + smm1 - 1 ] -= Math.abs( e[ ioffe + smm1 - 1 ] );
+        d[ ioffd + submat - 1 ] -= Math.abs( e[ ioffe + smm1 - 1 ] );
+      }
+
+      printMatrix();
+
+      var indxq = 4 * n + 3;
+      var curr = 0;
+      var goto130 = false;
+      for ( i = 0; i <= spm1; i ++ ) { // loop 70
+        if ( i == 0 ) {
+          submat = 1;
+          var matsiz = iwork[ ioffiwork ];
+        } else {
+          submat = iwork[ ioffiwork + i - 1 ] + 1;
+          matsiz = iwork[ ioffiwork + i ] - iwork[ ioffiwork + i - 1 ];
+        }
+
+//      document.getElementById("debug_textarea").value +=
+//        "i,submat,matsiz = " + i + " " + submat + " " + matsiz + "\n";
+
+//      LaPack2.dsteqr( 'I', matsiz, d, e, Q, ldq, work, info,
+//        ioffd + submat - 1, ioffe + submat - 1,
+//        ioffq + submat - 1 + ldq * ( submat - 1 ), //        ioffwork );
+        if ( matsiz == 2 ) {
+          var rt1 = new NumberReference();
+          var rt2 = new NumberReference();
+          var cs1 = new NumberReference();
+          var sn1 = new NumberReference();
+          LaPack0.dlaev2( d[ ioffd + submat - 1 ], e[ ioffe + submat - 1 ],
+            d[ ioffd + submat ], rt1, rt2, cs1, sn1 );
+//        d[ ioffd + submat - 1 ] = rt1.getValue();
+//        d[ ioffd + submat ] = rt2.getValue();
+//        e[ ioffe + submat - 1 ] = 0.;
+//        Q[ ioffq + submat - 1 + ( submat - 1 ) * ldq ] = cs1.getValue();
+//        Q[ ioffq + submat + ( submat - 1 ) * ldq ] = sn1.getValue();
+//        Q[ ioffq + submat - 1 + submat * ldq ] = - sn1.getValue();
+//        Q[ ioffq + submat + submat * ldq ] = cs1.getValue();
+          d[ ioffd + submat - 1 ] = rt2.getValue();
+          d[ ioffd + submat ] = rt1.getValue();
+          e[ ioffe + submat - 1 ] = 0.;
+          Q[ ioffq + submat - 1 + submat * ldq ] = cs1.getValue();
+          Q[ ioffq + submat + submat * ldq ] = sn1.getValue();
+          Q[ ioffq + submat - 1 + ( submat - 1 ) * ldq ] =
+            - sn1.getValue();
+          Q[ ioffq + submat + ( submat - 1 ) * ldq ] = cs1.getValue();
+        } else { // otherwise matsiz == 1
+          Q[ ioffq + submat - 1 + ( submat - 1 ) * ldq ] = 1.;
+        }
+//      if ( info.getValue() != 0 ) {
+//        goto130 = true;
+//        break;
+//      }
+        var k = 1;
+        for ( j = submat; j <= iwork[ ioffiwork + i ]; j ++ ) { // loop 60
+          iwork[ ioffiwork + indxq + j - 1 ] = k;
+          k ++;
+        }
+      }
+
+//    document.getElementById("debug_textarea").value +=
+//      "indxq = ";
+//    for ( var ii = 0; ii < iwork[ ioffiwork + spm1 ]; ii ++ ) {
+//      var indxqi = iwork[ ioffiwork + indxq + ii ];
+//      document.getElementById("debug_textarea").value += indxqi + " ";
+//        "indxq = ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+      document.getElementById("debug_textarea").value +=
+        "\nat finest level, eigenvalues of 2x2 and 1x1 matrices:\n"
+      printMatrix();
+
+      if ( ! goto130 ) {
+        var curlvl = 1;
+        while ( subpbs > 1 ) { // loop 80
+          var spm2 = subpbs - 2;
+
+//        document.getElementById("debug_textarea").value +=
+//          "\n\nsubpbs == " + subpbs + "\n\n";
+          document.getElementById("debug_textarea").value +=
+            "\npartition after indices = ";
+          for ( var ii = 0; ii < subpbs; ii ++ ) {
+            var iworki = iwork[ ioffiwork + ii ];
+            document.getElementById("debug_textarea").value +=
+              iworki + " ";
+          }
+          document.getElementById("debug_textarea").value += "\n";
+
+          for ( i = 0; i <= spm2; i += 2 ) { // loop 90
+            if ( i == 0 ) {
+              submat = 1;
+              matsiz = iwork[ ioffiwork + 1 ];
+              var msd2 = iwork[ ioffiwork ];
+              var curprb = 0;
+            } else {
+              submat = iwork[ ioffiwork + i - 1 ] + 1;
+              matsiz = iwork[ ioffiwork + i + 1 ]
+                     - iwork[ ioffiwork + i - 1 ];
+              msd2 = Math.floor( matsiz / 2 );
+              curprb ++;
+            }
+//          rank-one update:
+//          dlaed1(n,d,Q,ldq,indxq,rho,cutpnt,work,iwork,info)
+            dlaed1( matsiz, d, Q, ldq, iwork,
+              e[ ioffe + submat + msd2 - 2 ], msd2, work, iwork, info,
+              ioffd + submat - 1,
+              ioffq + submat - 1 + ( submat - 1 ) * ldq,
+              ioffiwork + indxq + submat - 1, ioffwork,
+              ioffiwork + subpbs );
+            if ( info.getValue() != 0 ) {
+              goto130 = true;
+              break;
+            }
+            iwork[ ioffiwork + Math.floor( i / 2 ) ] =
+              iwork[ ioffiwork + i + 1 ];
+          } 
+
+          printMatrix();
+
+          if ( goto130 ) break;
+          subpbs /= 2;
+          curlvl ++;
+        }
+      }
+
+//    printMatrix();
+
+      if ( ! goto130 ) {
+        for ( i = 1; i <= n; i ++ ) {
+          j = iwork[ ioffiwork + indxq + i - 1 ];
+          work[ ioffwork + i - 1 ] = d[ ioffd + j - 1 ];
+          Blas1.dcopy( n, Q, 1, work, 1, ioffq + ( j - 1 ) * ldq,
+            ioffwork + n * i );
+        }
+        Blas1.dcopy( n, work, 1, d, 1, ioffwork, ioffd );
+        LaPack0.dlacpy( 'A', n, n, work, n, Q, ldq, ioffwork + n,
+          ioffq );
+        return;
+      }
+      info.setValue( submat * ( n + 1 ) + submat + matsiz - 1 );
+
+//    document.getElementById("debug_textarea").value +=
+//      "leaving dlaed0\n";
+//    printMatrix();
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+//  loop over available partitioning into submatrices
+    function iterate() { // code taken from dstedc
+//    document.getElementById("debug_textarea").value +=
+//      "\nentering iterate, start = " + start + "\n";
+      while (start<=n) {
+        var finish = start;
+        while ( finish < n ) { // 20
+          var tiny
+            = eps * Math.sqrt( Math.abs( diag.getEntry( finish - 1 ) ) )
+            * Math.sqrt( Math.abs( diag.getEntry( finish ) ) );
+          if ( Math.abs( subdiag.getEntry( finish - 1 ) ) > tiny ) {
+            finish ++;
+          } else break;
+        }
+        var m = finish - start + 1;
+        if ( m == 1 ) { // 1x1 submatrix needs no work
+          start = finish + 1;
+          continue; // goto 10
+        }
+
+//      document.getElementById("debug_textarea").value +=
+//        "finish,m,smlsiz = " + finish + " " + m + " " + smlsiz + "\n";
+
+        var info = new IntReference();
+        if ( m > smlsiz ) {
+//        skip scaling
+          var work = new Array( 1 + n * ( 4 + n ) );
+          var iwork = new Array( 3 + 5 * n );
+          dlaed0( n, m, diag.dataArray(), subdiag.dataArray(), Z, n, 
+            work, n, work, iwork, info, start - 1, start - 1, 
+            start - 1 + ( start - 1 ) * n, 0, storez - 1, 0 );
+
+//        printMatrix();
+
+          if ( info.getValue() != 0 ) return;
+        } else {
+//        document.getElementById("debug_textarea").value +=
+//          "subproblem size = 2\n";
+//        LaPack2.dsteqr( "I', m, diag.dataArray(), subdiag.dataArray(),
+//          Z, n, work, info, start - 1, start - 1,
+//          start - 1 + ( start - 1 ) * n, 0 );
+//        if ( info.getValue() != 0 ) return;
+          if ( m == 2 ) {
+            var rt1 = new NumberReference();
+            var rt2 = new NumberReference();
+            var cs1 = new NumberReference();
+            var sn1 = new NumberReference();
+            LaPack0.dlaev2( d[ ioffd + start - 1 ], e[ ioffe + start - 1 ],
+              d[ ioffd + start ], rt1, rt2, cs1, sn1 );
+//          d[ ioffd + start - 1 ] = rt1.getValue();
+//          d[ ioffd + start ] = rt2.getValue();
+//          e[ ioffe + start - 1 ] = 0.;
+//          Z[ start - 1 + ( start - 1 ) * n ] = cs1.getValue();
+//          Z[ start + ( start - 1 ) * n ] = sn1.getValue();
+//          Z[ start - 1 + start * n ] = - sn1.getValue();
+//          Z[ start + start * n ] = cs1.getValue();
+            d[ ioffd + start - 1 ] = rt2.getValue();
+            d[ ioffd + start ] = rt1.getValue();
+            e[ ioffe + start - 1 ] = 0.;
+            Z[ start - 1 + start * n ] = cs1.getValue();
+            Z[ start + start * n ] = sn1.getValue();
+            Z[ start - 1 + ( start - 1 ) * n ] = - sn1.getValue();
+            Z[ start + ( start - 1 ) * n ] = cs1.getValue();
+          } else { // 1 x 1
+            Z[ start - 1 + ( start - 1 ) * n ] = 1.;
+          }
+
+//        printMatrix();
+        }
+        start = finish + 1;
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "leaving iterate\n";
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      diag.parse( diagonal_text );
+      subdiag.parse( subdiagonal_text );
+
+      n = diag.length();
+      Z = new Array( n * n );
+
+//    smlsiz = LaPack0.ilaenv( 9, 'dstedc', ' ', 0, 0, 0, 0 );
+      smlsiz = 2; // modified from dstedc to run divide/conquer to the max
+      if ( n == 0 ) return;
+      if ( n == 1 ) {
+        Z[ ioffz ] = 1.; // icompz = 1
+        return;
+      }
+      storez = 1;
+      LaPack0.dlaset( 'Full', n, n, 0., 1., Z, n, 0 );
+
+      var orgnrm = LaPack1.dlanst( 'M', n, diag.dataArray(),
+        subdiag.dataArray(), 0, 0 );
+      if ( orgnrm == 0. ) return; // zero matrix
+      eps = LaPack0.dlamch( 'Epsilon' );
+      start = 1;
+      iterate(); // loop over available partitions into tridiagonals
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+//:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+      diagonal =
+      <input
+        type="text"
+        name="diagonal_text"
+        value="6;5;4;3;2"
+        size="50"
+      >
+      <br>
+      sub-diagonal =
+      <input
+        type="text"
+        name="subdiagonal_text"
+        value="-1;-1;-1;-1"
+        size="50"
+      >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="diagonal_text=document.getElementsByName('diagonal_text')[0].value;subdiagonal_text=document.getElementsByName('subdiagonal_text')[0].value;onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=125
+      rows=20
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

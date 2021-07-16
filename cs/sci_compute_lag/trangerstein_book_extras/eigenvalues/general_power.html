@@ -1,0 +1,281 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Power Method for General Matrix </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Power Method for General Matrix </h2>
+    <script src=../linear_algebra/Blas1.js></script>
+    <script src=../linear_algebra/Blas2.js></script>
+    <script src=../linear_algebra/Blas3.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSMatrix.js></script>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/LaPack1.js></script>
+    <script src=../linear_algebra/LaPack2.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+    var matrix_text = "6,5,-5;2,6,-2;2,5,-1";
+    var A = new JSMatrix();
+    var AF = undefined;
+    var ipiv = undefined;
+    var shift = 0.;
+    var type = 0;
+    var first_iteration = true;
+
+    function eigenvectorResidual( lambda, x ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering eigenvectorResidual, lambda = " + lambda + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "x = " + x.toString() + "\n";
+      var n = A.numberRows();
+      var r = new JSVector( n, 0. );
+      Blas2.dgemv( 'N', n, n, 1., A.dataArray(), n, x.dataArray(), 1, 0.,
+        r.dataArray(), 1, 0, 0, 0);
+      for ( var i = 0; i < n; i ++ ) {
+        r.setEntry( i, r.getEntry( i ) - x.getEntry( i ) * lambda );
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "leaving eigenvectorResidual, r = " + r.toString() + "\n";
+      return r;
+    }
+    function iterate() {
+      document.getElementById("debug_textarea").value +=
+        "entering iteration, type,shift = " + type + " " + shift + " \n";
+      document.getElementById("debug_textarea").value +=
+        "x = " + x.toString() + " \n";
+      var n = A.numberRows();
+      switch ( type ) {
+        default:
+        case 0 : { // power method
+          var ax = new JSVector( n );
+          Blas2.dgemv( 'N', n, n, 1., A.dataArray(), n, x.dataArray(), 1,
+            0., ax.dataArray(), 1, 0, 0, 0);
+          for ( var i = 0; i < n; i ++ ) {
+            ax.setEntry( i, ax.getEntry( i ) - x.getEntry( i ) * shift );
+          }
+          var lambda = shift
+            + Blas1.ddot( n, x.dataArray(), 1, ax.dataArray(), 1, 0, 0 );
+          x.copy( ax );
+          x.divideEquals( ax.norm(2) );
+          var r = eigenvectorResidual( lambda, x );
+          document.getElementById("debug_textarea").value =
+            "power method \n";
+          document.getElementById("debug_textarea").value +=
+            "lambda = " + lambda + "\n";
+          document.getElementById("debug_textarea").value +=
+            "x = " + x.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual = " + r.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual norm = " + r.norm(2) + "\n";
+          return;
+        }
+        case 1 : { // inverse iteration
+          var info = new IntReference();
+          if ( AF == undefined ) {
+            ipiv = new Array( n );
+            AF = new JSMatrix( n, n, Number.POSITIVE_INFINITY );
+            AF.copy( A );
+            for ( var i = 0; i < n; i ++ ) {
+              AF.setEntry( i, i, AF.getEntry( i, i ) - shift );
+            }
+            LaPack2.dgetrf( n, n, AF.dataArray(), n, ipiv, info, 0, 0 );
+            if ( info.getValue() != 0 ) {
+              document.getElementById("debug_textarea").value =
+                "bad shift: singular matrix\n";
+              return;
+            }
+          }
+          var ainvx = new JSVector( n );
+          ainvx.copy( x );
+          LaPack1.dgetrs( 'N', n, 1, AF.dataArray(), n, ipiv,
+            ainvx.dataArray(), n, info, 0, 0, 0 );
+          var x_dot_ainvx =
+            Blas1.ddot( n, x.dataArray(), 1, ainvx.dataArray(), 1, 0, 0 );
+          var lambda = shift + 1. / x_dot_ainvx;
+          x.copy( ainvx );
+          x.divideEquals( ainvx.norm(2) );
+          var r = eigenvectorResidual( lambda, x );
+          document.getElementById("debug_textarea").value =
+            "inverse iteration \n";
+          document.getElementById("debug_textarea").value +=
+            "lambda = " + lambda + "\n";
+          document.getElementById("debug_textarea").value +=
+            "x = " + x.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual = " + r.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual norm = " + r.norm(2) + "\n";
+          return;
+        }
+        case 2 : { // Rayleigh quotient iteration
+          var lambda = undefined;
+          if ( first_iteration ) {
+            lambda = shift;
+          } else {
+            var ax = new JSVector( n );
+            Blas2.dgemv( 'N', n, n, 1., A.dataArray(), n, x.dataArray(), 1,
+              0., ax.dataArray(), 1, 0, 0, 0);
+            lambda =
+              Blas1.ddot( n, x.dataArray(), 1, ax.dataArray(), 1, 0, 0 );
+          }
+          var info = new IntReference();
+          ipiv = new Array( n );
+          AF = new JSMatrix( n, n, Number.POSITIVE_INFINITY );
+          AF.copy( A );
+          for ( var i = 0; i < n; i ++ ) {
+            AF.setEntry( i, i, AF.getEntry( i, i ) - lambda );
+          }
+          LaPack2.dgetrf( n, n, AF.dataArray(), n, ipiv, info, 0, 0 );
+          if ( info.getValue() != 0 ) {
+            if ( first_iteration ) {
+              document.getElementById("debug_textarea").value +=
+                "bad shift: singular matrix\n";
+            } else {
+              document.getElementById("debug_textarea").value +=
+                "Rayleigh quotient shift is a numerical eigenvalue\n";
+              document.getElementById("debug_textarea").value +=
+                "Rayleigh quotient = " + lambda + "\n";
+              document.getElementById("debug_textarea").value +=
+                "x = " + x.toString() + "\n";
+            }
+            return;
+          }
+          var ainvx = new JSVector( n );
+          ainvx.copy( x );
+          LaPack1.dgetrs( 'N', n, 1, AF.dataArray(), n, ipiv,
+            ainvx.dataArray(), n, info, 0, 0, 0 );
+          x.copy( ainvx );
+          x.divideEquals( ainvx.norm(2) );
+          var r = eigenvectorResidual( lambda, x );
+          document.getElementById("debug_textarea").value =
+            "Rayleigh quotient iteration \n";
+          document.getElementById("debug_textarea").value +=
+            "lambda = " + lambda + "\n";
+          document.getElementById("debug_textarea").value +=
+            "x = " + x.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual = " + r.toString() + "\n";
+          document.getElementById("debug_textarea").value +=
+            "residual norm = " + r.norm(2) + "\n";
+          first_iteration = false;
+          return;
+        }
+      }
+    }
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      var radio_buttons =
+        document.getElementsByName("iteration_radiobox");
+      type = 0;
+      for ( var i = 0; i < radio_buttons.length; i ++ ) {
+        if ( radio_buttons[ i ].checked ) {
+          type = Number( radio_buttons[ i ].value );
+          break;
+        }
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "type = " + type + "\n";
+      A.parse( matrix_text );
+      shift = Number( shift );
+      AF = undefined;
+      ipiv = undefined;
+      first_iteration = true;
+      var n = A.numberRows();
+      x = new JSVector( n, 0. );
+      for ( var i = 0; i < n; i ++ ) {
+        x.setEntry( i, Math.random() );
+      }
+      x.divideEquals( x.norm(2) );
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+      matrix =
+      <input
+        type="text"
+        name="matrix_text"
+        value="6,5,-5;2,6,-2;2,5,-1"
+        size="50"
+      >
+    <br>
+    shift = 
+    <input
+      type="number"
+      name="shift"
+      value="0"
+      onchange="checkNumber(document.getElementsByName('shift')[0].value);"
+      size=20
+    >
+    <br>
+    <fieldset>
+      <legend> Type of iteration: </legend>
+      <label for="power method">
+        <input
+        type="radio"
+        checked value="0"
+        id="power_option_checkbox"
+        name="iteration_radiobox"
+        />
+        Power Method
+      </label>
+      <label for="inverse iteration">
+        <input
+        type="radio"
+        checked value="1"
+        id="inverse_option_checkbox"
+        name="iteration_radiobox"
+        />
+        Inverse Iteration
+      </label>
+<!--
+-->
+      <label for="Rayleight quotient iteration">
+        <input
+        type="radio"
+        checked value="2"
+        id="rayleigh_option_checkbox"
+        name="iteration_radiobox"
+        />
+        Rayleigh Quotient Iteration
+      </label>
+    </fieldset>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;shift=document.getElementsByName('shift')[0].value;onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=7
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

@@ -1,0 +1,191 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>quadrature</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    quadrature rules to compute
+    \( \int_0^{2 \pi} e^{1/\pi^2 - 1/[ t ( 2 \pi - t ) ]} \; d t \)
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      function f(x) {
+        return Math.exp( 1./Math.pow(Math.PI,2) - 1/(x*(2.*Math.PI-x)));
+      }
+      var exact = 5.540732010283041;
+//    function f(x) {
+//      return Math.pow( Math.sin(x), 2 );
+//    }
+//    var exact = Math.PI;
+
+      var a = 0;
+      var b = 2 * Math.PI;
+      var len = b - a;
+      var type = 0; // Riemann:0, midpoint:1, trapezoidal:2
+
+      var n = 1;
+      var k = 0;
+      var xarray = new Array( 1 );
+      var yarray = new Array( 1 );
+
+      function riemann( ) {
+        var sum =  0;
+        var dx = len / n;
+        var x = a;
+        for ( var i = 0; i < n; i ++, x += dx ) sum += f(x);
+        sum *= dx;
+        return sum;
+      }
+      function midpoint( ) {
+        var sum =  0;
+        var dx = len / n;
+        var x = a + dx * 0.5;
+        for ( var i = 0; i < n; i ++, x += dx ) sum += f(x);
+        sum *= dx;
+        return sum;
+      }
+      function trapezoidal( ) {
+        var sum =  0;
+        var dx = len / n;
+        var x = a + dx;
+        for ( var i = 1; i < n; i ++, x += dx ) sum += f(x);
+        sum = ( sum + ( f( a ) + f( b ) ) * 0.5 ) * dx;
+        return sum;
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var radio_buttons =
+          document.getElementsByName("quadrature_radiobox");
+        for ( var i = 0; i < radio_buttons.length; i ++ ) {
+          if ( radio_buttons[ i ].checked ) {
+            type = Number( radio_buttons[ i ].value );
+            break;
+          }
+        }
+        n = 1;
+        k = 0;
+//      document.getElementById("debug_textarea").value +=
+//        "n = " + n + "\n";
+        var result = 0;
+        switch ( type ) {
+          case 0:
+            result = riemann();
+            break;
+          case 1:
+            result = midpoint();
+            break;
+          case 2:
+            result = trapezoidal();
+            break;
+        }
+        xarray[ k ] = Math.LOG10E * Math.log( n );
+        yarray[ k ] = Math.LOG10E* Math.log( Math.abs( result - exact ) );
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function plotError() {
+        n *= 2;
+        k ++;
+        document.getElementById("debug_textarea").value =
+          "n = " + n + "\n";
+        switch ( type ) {
+          case 0:
+            result = riemann();
+            break;
+          case 1:
+            result = midpoint();
+            break;
+          case 2:
+            result = trapezoidal();
+            break;
+        }
+        document.getElementById("debug_textarea").value +=
+          "result = " + result + "\n";
+        xarray[ k ] = Math.LOG10E * Math.log( n );
+        yarray[ k ] = Math.LOG10E* Math.log( Math.max( 1.e-15,
+          Math.abs( result - exact ) ) );
+        var ymin = Number.MAX_VALUE;
+        var ymax = -Number.MAX_VALUE;
+        for ( var i = 0; i <= k; i ++ ) {
+          ymin = Math.min( ymin, yarray[ i ] );
+          ymax = Math.max( ymax, yarray[ i ] );
+        }
+        plot_canvas = document.getElementById("plot_canvas");
+        gt = new XYGraphTool( plot_canvas, "log_10(error) vs log_10(n)",
+          "log_10(n)", "log_10(error)", xarray[ 0 ], xarray[ k ],
+          ymin, ymax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], yarray[ 0 ] );
+          for ( var i = 1; i <= k; i ++ ) {
+            gt.drawLine( xarray[ i ], yarray[ i ] );
+          }
+        gt.endDrawing();
+      }
+    </script>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <fieldset>
+      <legend> Type of quadrature: </legend>
+      <label for="riemann_option">
+        <input
+          type="radio"
+          checked value="0"
+          id="riemann_option_checkbox"
+          name="quadrature_radiobox"
+        />
+        Riemann
+      </label>
+      <label for="midpoint_option">
+        <input
+          type="radio"
+          value="1"
+          id="midpoint_option_checkbox"
+          name="quadrature_radiobox"
+        />
+        midpoint
+      </label>
+      <label for="trapezoidal_option">
+        <input
+          type="radio"
+          value="2"
+          id="trapezoidal_option_checkbox"
+          name="quadrature_radiobox"
+        />
+        trapezoidal
+      </label>
+    </fieldset>
+    <br>
+    <input
+      type="button"
+      value="Begin new refinement study"
+      onclick="onStart();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Double number of mesh points"
+      onclick="plotError();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

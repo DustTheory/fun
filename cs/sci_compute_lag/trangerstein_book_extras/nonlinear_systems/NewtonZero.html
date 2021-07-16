@@ -1,0 +1,193 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Newton Zero </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+      Newton iteration to find zero of
+<!--
+      \( f(x,y) = \begin{bmatrix} x^2 + y^2 \\ e^{x+y} - 1 \end{bmatrix} \)
+-->
+      \( f(x,y) = \begin{bmatrix} 2 ( y - x^2 ) \\ 1 - x \end{bmatrix} \)
+    </h2>
+    <h>
+      function vector field in blue
+      <br>
+      Kantorovich guaranteed convergence region in red
+      <br>
+    </h>
+    <script src=../plotting/AreaGraphTool.js></script>
+    <script src=../plotting/Colormap.js></script>
+    <script src=../plotting/Palette.js></script>
+    <script src=../linear_algebra/Complex.js></script>
+    <script language="javascript">
+      var solnx = undefined;
+      var solny = undefined;
+      var gt = undefined;
+      var gt2 = undefined;
+      var nc = [ 10, 10 ];
+//    var low = [ -1, -1 ];
+//    var high = [ 1, 1 ];
+      var low = [ -1, -1 ];
+      var high = [ 3, 3 ];
+
+      function f( x, y ) {
+        return new Array( 2. * ( y - x * x ), 1. - x );
+      }
+      function Jf( x, y ) {
+        return new Array( - 4. * x, -1., 2., 0. );
+      }
+//    Lipschitz constant for Jf is 4
+      function JfInverseTimesF( x, y ) {
+        var xm1 = x - 1.;
+        return new Array( xm1, ( y - 1. ) + Math.pow( xm1, 2 ) );
+      }
+      function norm2JfInverse( x, y ) {
+        return Math.sqrt( ( 1 + 4 * x * x ) * .5
+                        + Math.sqrt( 2 * x * x * ( 1 + 2 * x * x ) ) ); 
+      }
+      function kantorovichBoundFcn( x, y ) {
+        var vec = JfInverseTimesF( x, y );
+        return 8 * norm2JfInverse( x, y )
+          * Math.sqrt( Math.pow( vec[0], 2 ) + Math.pow( vec[1], 2 ) ) - 1;
+      }
+      function kantorovichBound( theta ) {
+        var rholo = 0.;
+        var rhohi = 20.;
+        var flo = kantorovichBoundFcn( 1. + Math.sin( theta ) * rholo, 
+          1. + Math.cos( theta ) * rholo );
+        var fhi = kantorovichBoundFcn( 1. + Math.sin( theta ) * rhohi, 
+          1. + Math.cos( theta ) * rhohi );
+        for ( var i = 0; i < 20; i ++ ) {
+          var rho = ( rholo + rhohi ) * .5;
+          var f = kantorovichBoundFcn( 1. + Math.sin( theta ) * rho,
+            1. + Math.cos( theta ) * rho );
+          if ( f * flo > 0 ) rholo = rho;
+          else rhohi = rho;
+        }
+        return new Array( 1. + Math.sin( theta ) * rho,
+          1. + Math.cos( theta ) * rho );
+      }
+      function plotKantorovichBound( gt ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotKantorovichBound\n";
+        gt.beginDrawing();
+          var ntheta = 256;
+          var dtheta = 2 * Math.PI / ntheta;
+          var theta = 0;
+          var vec = kantorovichBound( theta );  
+//        document.getElementById("debug_textarea").value +=
+//          "theta,vec = " + theta + " " + vec[0] + " " + vec[1] + "\n";
+          gt.movePen( [ vec[0], vec[1] ] );
+          for ( var i = 1; i <= ntheta; i++ ) {
+            theta += dtheta;
+            vec = kantorovichBound( theta );  
+//          document.getElementById("debug_textarea").value +=
+//            "theta,vec = " + theta + " " + vec[0] + " " + vec[1] + "\n";
+            gt.drawLine( [ vec[0], vec[1] ] );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotKantorovichBound\n";
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var p = new Palette();
+        var cm = new Colormap( p );
+        gt = new AreaGraphTool(
+          document.getElementById("function_canvas"),"vector field test",
+          "x", "y ", low, high, cm );
+        gt.setBgColor();
+        gt.newPage();
+        gt.setFgColor( );
+        gt.drawAxes();
+        gt.putString( low, "function values", false, false, false );
+        gt.setFgColor( 0 );
+        gt.functionVectorField( f, nc );
+        gt.setFgColor( 1 );
+        plotKantorovichBound( gt );
+        gt.mouseUp = firstNewtonIteration;
+        gt.watchMouse();
+        gt.listen();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function firstNewtonIteration( e ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering firstNewtonIteration\n";
+        solnx = gt.mouse_coords[0]; 
+        solny = gt.mouse_coords[1]; 
+        newtonIteration( );
+//      document.getElementById("debug_textarea").value +=
+//        "leaving firstNewtonIteration\n";
+      }
+      function newtonIteration() {
+//      document.getElementById("debug_textarea").value =
+//        "entering newtonIteration\n";
+        document.getElementById("debug_textarea").value = "";
+        gt.setBgColor( );
+        gt.newPage();
+        gt.setFgColor( undefined );
+        gt.drawBoundingBox();
+        gt.drawAxes();
+        gt.setFgColor( 0 );
+        gt.functionVectorField( f, [ 10, 10 ] );
+        gt.setFgColor( 1 );
+        plotKantorovichBound( gt );
+        gt.setFgColor( .5 );
+        document.getElementById("debug_textarea").value +=
+          "soln = " + solnx + " " + solny + "\n";
+        gt.beginDrawing();
+          gt.movePen( [ solnx, solny ] );
+          var it = 0;
+          var itmax = 10;
+          while ( low[0] <= solnx && solnx <= high[0] &&
+          low[1] <= solny && solny <= high[1] && it < itmax ) {
+            var fval = f( solnx, solny );
+            var Jfval = Jf( solnx, solny );
+            var det = Jfval[ 0 ] * Jfval[ 3 ] - Jfval[ 1 ] * Jfval[ 2 ];
+            var stepx = ( Jfval[ 2 ] * fval[ 1 ] - Jfval[ 3 ] * fval[ 0 ] )
+                      / det;
+            var stepy = ( Jfval[ 1 ] * fval[ 0 ] - Jfval[ 0 ] * fval[ 1 ] )
+                      / det;
+            var head = new Complex( stepx, stepy ); 
+            solnx += stepx;
+            solny += stepy;
+            document.getElementById("debug_textarea").value +=
+              "it,soln = " + it + " " + solnx + " " + solny + "\n";
+            gt.drawLine( [ solnx, solny ] );
+            it ++;
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving newtonIteration\n";
+      }
+    </script>
+    <canvas id="function_canvas" width="500" height="500">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Click mouse in upper drawing area to select initial guess
+    <br>
+    <input
+      type="button"
+      value="Choose a different initial guess"
+      onclick="onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=11
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

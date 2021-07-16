@@ -1,0 +1,244 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Successive Reflection </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Successive Reflection </h2>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/JSMatrix.js></script>
+    <script src=../linear_algebra/Blas1.js></script>
+    <script src=../linear_algebra/Blas2.js></script>
+    <script language="javascript">
+    var matrix_text="1,1;1.e-10,0;0,1.e-10";
+    var rhs_text="1;0;0";
+
+    function factorMatrix( ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering factorMatrix\n";
+      document.getElementById("q_factor_textarea").value="";
+      document.getElementById("r_factor_textarea").value="";
+      document.getElementById("x_textarea").value="";
+      document.getElementById("b_minus_Ax_textarea").value="";
+      document.getElementById("rnorm_textarea").value="";
+      var A = new JSMatrix();
+      A.parse( matrix_text );
+      var m = A.numberRows();
+      var n = A.numberCols();
+      if ( m < n ) return;
+
+      var rhs = new JSVector();
+      rhs.parse( rhs_text );
+      if ( rhs.length() != m ) return;
+
+      var QR = new JSMatrix();
+      QR.copy( A );
+      var tau = new JSVector( n, 0. );
+      var Q = new JSMatrix( m, m, 0. );
+
+      var x = new JSVector( n );
+      x.copy(rhs);
+
+//    document.getElementById("debug_textarea").value += "b = ";
+//    for ( var i = 0; i < m; i ++ ) {
+//      document.getElementById("debug_textarea").value +=
+//        r.getEntry( i ) + " ";
+//    }
+//    document.getElementById("debug_textarea").value += "\n";
+
+//    factor A
+      var work=new Array( n );
+      for ( var k = 0; k < n; k++ ) {
+        var beta = Blas1.dnrm2( m - k, QR.dataArray(), 1, k + k * m );
+        var alpha = QR.getEntry( k, k );
+        if ( alpha > 0. ) beta = - beta;
+        tau.setEntry( k, ( beta - alpha ) / beta );
+        if ( k < m - 1 ) {
+          Blas1.dscal( m - k - 1, 1. / ( alpha - beta ), QR.dataArray(), 1,
+            k + 1 + k * m );
+        }
+        QR.setEntry( k, k, 1. );
+        if ( k < n - 1 ) {
+          Blas2.dgemv( 'T', m - k, n - k - 1, 1., QR.dataArray(), m,
+            QR.dataArray(), 1, 0., work, 1, k + ( k + 1 ) * m, k + k * m,
+            k + 1 );
+          Blas2.dger( m - k, n - k - 1, - tau.getEntry( k ),
+            QR.dataArray(), 1, work, 1, QR.dataArray(), m,
+            k + k * m, k + 1, k + ( k + 1 ) * m );
+        }
+        var w = Blas1.ddot( m - k, QR.dataArray(), 1, x.dataArray(), 1,
+          k + k * m, k );
+        Blas1.daxpy( m - k, - tau.getEntry( k ) * w, QR.dataArray(), 1,
+          x.dataArray(), 1, k + k * m, k );
+        QR.setEntry( k, k, beta );
+      }
+      Blas2.dtrsv( 'U', 'N', 'N', n, QR.dataArray(), m, x.dataArray(),
+        1, 0, 0 );
+
+//    form Q:
+      for ( var k = 0; k < m; k ++ ) Q.setEntry( k, k, 1. );
+      for ( var k = 0; k < n; k ++ ) {
+        var rho = QR.getEntry( k, k );
+        QR.setEntry( k, k, 1. );
+        Blas2.dgemv( 'T', m - k, m, 1., Q.dataArray(), m, QR.dataArray(), 1,
+          0., work, 1, k, k + k * m, 0 );
+        Blas2.dger( m - k, m, - tau.getEntry( k ), QR.dataArray(), 1,
+          work, 1, Q.dataArray(), m, k + k * m, 0, k );
+        QR.setEntry( k, k, rho );
+      }
+
+      var sq = new Array( m * m );
+      var cwq = new Array( m );
+      for ( var j = 0; j < m; j ++ ) {
+        cwq[ j ] = 0;
+        for ( var i = 0; i < m; i ++ ) {
+          sq[ i + j * m ] = scientificFormat( Q.getEntry( i, j ) );
+          cwq[ j ]=Math.max( sq[ i + j * m ].length, cwq[ j ] );
+        }
+      }
+      var sr = new Array( n * n );
+      var cwr = new Array( n );
+      for ( var j = 0; j < n; j ++ ) {
+        cwr[ j ] = 0;
+        for ( var i = 0; i <= j; i ++ ) {
+          sr[ i + j * m ] = scientificFormat( QR.getEntry( i, j ) );
+          cwr[ j ]=Math.max( sr[ i + j * m ].length, cwr[ j ] );
+        }
+      }
+//    display Q
+      document.getElementById("q_factor_textarea").style.color = "green";
+      document.getElementById("q_factor_textarea").value = "Q = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        var str = new String();
+        for ( var j = 0; j < m; j ++ ) {
+          var sj = sq[ i + j * m ];
+          while ( sj.length < cwq[ j ] ) sj += ' ';
+          str += sj + ' ';
+        }
+        document.getElementById("q_factor_textarea").value += str + "\n";
+      }
+
+//    display R
+      document.getElementById("r_factor_textarea").style.color = "red";
+      document.getElementById("r_factor_textarea").value = "R = \n";
+      for ( var i = 0; i < n; i ++ ) {
+        var str2 = new String();
+        for ( var j = 0; j < i; j ++ ) {
+          var sj2 = '';
+          while ( sj2.length < cwr[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        for ( var j = i; j < n - 1; j ++ ) {
+          sj2 = sr[ i + j * m ];
+          while ( sj2.length < cwr[ j ] ) sj2 = ' ' + sj2;
+          str2 += sj2 + ' ';
+        }
+        j = n - 1;
+        sj2 = sr[ i + j * m ];
+        while ( sj2.length < cwr[ j ] ) sj2= ' ' + sj2;
+        str2 += sj2;
+        document.getElementById("r_factor_textarea").value += str2
+          + "\n";
+      }
+
+//    display x
+      document.getElementById("x_textarea").style.color = "blue";
+      document.getElementById("x_textarea").value += "x = \n";
+      for ( var j = 0; j < n; j ++ ) {
+        document.getElementById("x_textarea").value +=
+          scientificFormat( x.getEntry( j ) ) + "\n";
+      }
+      var rn = Blas1.dnrm2( m - n, x.dataArray(), 1, n );
+
+//    compute b - A * x
+      var r = new JSVector( );
+      r.copy( rhs );
+      Blas2.dgemv( 'N', m, n, -1., A.dataArray(), m, x.dataArray(), 1, 1.,
+        r.dataArray(), 1, 0, 0, 0 );
+      rn -= Blas1.dnrm2( m, r.dataArray(), 1, 0 );
+
+      document.getElementById("b_minus_Ax_textarea").value +=
+        "b - A * x = \n";
+      for ( var i = 0; i < m; i ++ ) {
+        document.getElementById("b_minus_Ax_textarea").value +=
+          scientificFormat( r.getEntry(i) ) + "\n";
+      }
+
+      document.getElementById("rnorm_textarea").value +=
+        "|| z || - || b - A x || = " + rn + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "leaving factorMatrix\n";
+    }
+
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    </script>
+    Enter matrix:
+    <input
+      type="text"
+      name="matrix_text"
+      value="1,1;1.e-10,0;0,1.e-10";
+      size="50"
+    >
+    <br>
+    Enter right-hand side:
+    <input
+      type="text"
+      name="rhs_text"
+      value="1;0;0";
+      size="50"
+    >
+    <input
+      type="button"
+      value="Solve least squares problem"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;factorMatrix();"
+    >
+    <br>
+    <textarea
+      id="q_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="r_factor_textarea"
+      cols=100
+      rows=10
+    >
+    </textarea>
+    <br>
+    <textarea
+      id="x_textarea"
+      cols=30
+      rows=10
+    >
+    </textarea>
+    <br>
+    <textarea
+      id="b_minus_Ax_textarea"
+      cols=30
+      rows=10
+    >
+    </textarea>
+    <br>
+    <textarea
+      id="rnorm_textarea"
+      cols=60
+      rows=1
+    >
+    </textarea>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+-->
+    <script language="javascript"> factorMatrix(); </script>
+  </BODY>
+</HTML>

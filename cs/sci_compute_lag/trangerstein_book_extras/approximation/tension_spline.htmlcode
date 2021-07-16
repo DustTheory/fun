@@ -1,0 +1,14 @@
+\begin{html}
+  <iframe
+    src="code/approximation/tension_spline.html"
+    width=900
+    height=550
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/approximation/tension_spline.html">tension_spline.html</a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

@@ -1,0 +1,23 @@
+Textbook:
+    Scientific computing Vol.1 Trangenstein
+
+Chapter 2:
+
+    Everything binary:
+        https://www.youtube.com/playlist?list=PLTd6ceoshprcpen2Jvs_JiuvWvqIAkzea
+
+        Floating point number representation: 
+            https://fabiensanglard.net/floating_point_visually_explained/index.html
+            https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+            https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+            https://stackoverflow.com/questions/8341395/what-is-a-subnormal-floating-point-number
+            https://stackoverflow.com/questions/14001910/what-is-this-denormal-data-about-c
+
+        Floating point addition:
+            https://www.youtube.com/watch?v=KiWz-mGFqHI
+
+        Useful floating point to denary conversion tool:
+            https://babbage.cs.qc.cuny.edu/IEEE-754.old/Decimal.html
+
+        Truncation/rounding error:
+            https://www.youtube.com/watch?v=wbxSTxhTmrs

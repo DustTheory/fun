@@ -1,0 +1,466 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Newton Iteration for Matrix Square Root </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2> Newton Iteration for Matrix Square Root </h2>
+    <script src=../linear_algebra/Blas1.js></script>
+    <script src=../linear_algebra/Blas2.js></script>
+    <script src=../linear_algebra/Blas3.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSMatrix.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/LaPack1.js></script>
+    <script src=../linear_algebra/LaPack2.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+      var matrix_text="4,1,0,0;0,4,0,0;0,0,9,1;0,0,0,9";
+      var A = new JSMatrix();
+      var S = new JSMatrix();
+      var R = new JSMatrix();
+      var n = undefined;
+      var it = undefined;
+      var type = undefined;
+
+      function matrixDisplay( M, sa, cw ) {
+        var r = M.numberRows();
+        var c = M.numberCols();
+//      document.getElementById("debug_textarea").value +=
+//        "entering matrixDisplay, r,c = " + r + " " + c + "\n";
+        for ( var j = 0; j < c; j ++ ) {
+          sa[ j + j * r ] = new String();
+          cw[ j ] = 0;
+          for ( var i = 0; i < r; i ++ ) {
+            sa[ i + j * r ] = scientificFormat( M.getEntry( i, j ) );
+            cw[ j ] = Math.max( sa[ i + j * r ].length, cw[ j ] );
+
+            var saij = sa[ i + j * r ];
+//          document.getElementById("debug_textarea").value +=
+//            "i,j,sa,cw = " + i + " " + j + " " + saij + " " + cw[ j ]
+//            + "\n";
+          }
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "leaving matrixDisplay\n";
+      }
+      function newtonIteration( ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering newtonIteration\n";
+//      document.getElementById("debug_textarea").value += "A = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            A.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+//      document.getElementById("debug_textarea").value += "S = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            S.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+
+        var E = new JSMatrix( n, n, 0. );
+        Blas3.dgemm( 'N', 'N', n, n, n, 1., S.dataArray(), n,
+          S.dataArray(), n, 0., E.dataArray(), n, 0, 0, 0 );
+        E.minusEquals( A );
+
+        var sa = new Array( n * n );
+        var cw = new Array( n );
+        matrixDisplay( S, sa, cw );
+        document.getElementById("square_root_textarea").value = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("square_root_textarea").value +=
+            str + "\n";
+        }
+
+        sa = new Array( n * n );
+        cw = new Array( n );
+        matrixDisplay( E, sa, cw );
+        document.getElementById("square_root_error_textarea").value = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("square_root_error_textarea").value +=
+            str + "\n";
+        }
+
+        var Sold = new JSMatrix();
+        Sold.copy( S );
+        var Sf = new JSMatrix();
+        Sf.copy( S );
+        var ipiv = new Array( n );
+        var info = new IntReference();
+        LaPack2.dgetrf( n, n, Sf.dataArray(), n, ipiv, info, 0, 0 );
+        if ( info.getValue() != 0 ) {
+          document.getElementById("debug_textarea").value =
+            "approximate square root is singular\n";
+          return;
+        }
+        S.copy( A );
+        LaPack1.dgetrs( 'N', n, n, Sf.dataArray(), n, ipiv, S.dataArray(),
+          n, info, 0, 0, 0 );
+//      document.getElementById("debug_textarea").value += "S^{-1} A = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            S.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+        S.plusEquals( Sold );
+//      document.getElementById("debug_textarea").value +=
+//        "S + S^{-1} A = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            S.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+        S.timesEquals( .5 );
+//      document.getElementById("debug_textarea").value += "S = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            S.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+
+        Sold.minusEquals( S );
+//      document.getElementById("debug_textarea").value += "dS = \n";
+//      for ( var i = 0; i < n; i ++ ) {
+//        for ( var j = 0; j < n; j ++ ) {
+//          document.getElementById("debug_textarea").value +=
+//            Sold.getEntry( i, j ) + " ";
+//        }
+//        document.getElementById("debug_textarea").value += "\n";
+//      }
+        var work = new Array();
+        var norm = LaPack1.dlange( 'F', n, n, Sold.dataArray(), n, work,
+          0, 0 );
+        document.getElementById("debug_textarea").value =
+          "Newton iteration: k = " + it + "\n|| S_{k+1} - S_k ||_F = "
+          + norm + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving newtonIteration\n";
+      }
+      function denmanBeaversIteration( ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering denmanBeaversIteration\n";
+        var E = new JSMatrix( n, n, 0. );
+        Blas3.dgemm( 'N', 'N', n, n, n, 1., S.dataArray(), n,
+          S.dataArray(), n, 0., E.dataArray(), n, 0, 0, 0 );
+        E.minusEquals( A );
+        var F = new JSMatrix( n, n, 0. );
+        Blas3.dgemm( 'N', 'N', n, n, n, 1., S.dataArray(), n,
+          R.dataArray(), n, 0., F.dataArray(), n, 0, 0, 0 );
+        for ( var i = 0; i < n; i ++ ) {
+          F.setEntry( i, i, F.getEntry( i, i ) - 1. );
+        }
+
+        var sa = new Array( n * n );
+        var cw = new Array( n );
+        matrixDisplay( S, sa, cw );
+        document.getElementById("square_root_textarea").value = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("square_root_textarea").value +=
+            str + "\n";
+        }
+
+        sa = new Array( n * n );
+        cw = new Array( n );
+        matrixDisplay( E, sa, cw );
+        document.getElementById("square_root_error_textarea").value = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("square_root_error_textarea").value +=
+            str + "\n";
+        }
+
+        var sa = new Array( n * n );
+        var cw = new Array( n );
+        matrixDisplay( R, sa, cw );
+        document.getElementById("inverse_square_root_textarea").value = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("inverse_square_root_textarea").value +=
+            str + "\n";
+        }
+
+        sa = new Array( n * n );
+        cw = new Array( n );
+        matrixDisplay( F, sa, cw );
+        document.getElementById("inverse_square_root_error_textarea").value
+          = "";
+        for ( var i = 0; i < n; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * n ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("inverse_square_root_error_textarea").
+            value += str + "\n";
+        }
+
+        var Sold = new JSMatrix();
+        Sold.copy( S );
+        var Rold = new JSMatrix();
+        Rold.copy( R );
+
+        var ipiv = new Array( n );
+        var info = new IntReference();
+        LaPack2.dgetrf( n, n, R.dataArray(), n, ipiv, info, 0, 0 );
+        if ( info.getValue() != 0 ) {
+          document.getElementById("debug_textarea").value =
+            "approximate inverse square root is singular\n";
+          return;
+        }
+        S.fillWith( 0. );
+        for ( var i = 0; i < n; i ++ ) S.setEntry( i, i, 1. );
+        LaPack1.dgetrs( 'N', n, n, R.dataArray(), n, ipiv,
+          S.dataArray(), n, info, 0, 0, 0 ); // S now holds R^{-1}
+        S.plusEquals( Sold );
+        S.timesEquals( .5 ); // S now holds updated value
+        var dS = new JSMatrix();
+        dS.copy( S );
+        dS.minusEquals( Sold );
+        var work = new Array();
+        var norm = LaPack1.dlange( 'F', n, n, dS.dataArray(), n, work,
+          0, 0 );
+        document.getElementById("debug_textarea").value =
+          "Denman-Beavers iteration: k = " + it
+          + "\n|| S_{k+1} - S_k ||_F = " + norm + "\n";
+
+        LaPack2.dgetrf( n, n, Sold.dataArray(), n, ipiv, info, 0, 0 );
+        if ( info.getValue() != 0 ) {
+          document.getElementById("debug_textarea").value =
+            "approximate square root is singular\n";
+          return;
+        }
+        R.fillWith( 0. );
+        for ( var i = 0; i < n; i ++ ) R.setEntry( i, i, 1. );
+        LaPack1.dgetrs( 'N', n, n, Sold.dataArray(), n, ipiv,
+          R.dataArray(), n, info, 0, 0, 0 ); // R now holds old S^{-1}
+        R.plusEquals( Rold );
+        R.timesEquals( .5 ); // R now holds updated value
+        var dR = new JSMatrix();
+        dR.copy( R );
+        dR.minusEquals( Rold );
+        var work = new Array();
+        var norm = LaPack1.dlange( 'F', n, n, dR.dataArray(), n, work,
+          0, 0 );
+        document.getElementById("debug_textarea").value +=
+          "|| R_{k+1} - R_k ||_F = " + norm + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "leaving denmanBeaversIteration\n";
+      }
+      function iterate() {
+        if ( type == 0 ) newtonIteration();
+        else denmanBeaversIteration();
+        it ++;
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var radio_buttons =
+          document.getElementsByName("iteration_radiobox");
+        type = 0;
+        for ( var i = 0; i < radio_buttons.length; i ++ ) {
+          if ( radio_buttons[ i ].checked ) {
+            type = Number( radio_buttons[ i ].value );
+            break;
+          }
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "type = " + type + "\n";
+
+        var matrix_text=document.getElementsByName('matrix_text')[0].value;
+        document.getElementById("matrix_textarea").value="";
+        document.getElementById("square_root_textarea").value="";
+        document.getElementById("square_root_error_textarea").value="";
+        document.getElementById("inverse_square_root_textarea").value="";
+        document.getElementById("inverse_square_root_error_textarea").value
+          ="";
+        document.getElementById("debug_textarea").value="";
+
+        A.parse( matrix_text );
+        m = A.numberRows();
+        n = A.numberCols();
+        if ( m !== n ) {
+          document.getElementById("debug_textarea").value =
+            "matrix not square\n";
+          return;
+        }
+        it = 0;
+        var sa = new Array( n * n );
+        var cw = new Array( n );
+        matrixDisplay( A, sa, cw );
+        document.getElementById("matrix_textarea").value = "";
+        for ( var i = 0; i < m; i ++ ) {
+          var str = new String();
+          for ( var j = 0; j < n; j ++ ) {
+            var sj = sa[ i + j * m ];
+            while ( sj.length < cw[ j ] ) sj += ' ';
+            str += sj + ' ';
+          }
+          document.getElementById("matrix_textarea").value += str + "\n";
+        }
+
+        S = new JSMatrix( n, n, 0. );
+        for ( var j = 0; j < n; j ++ ) {
+          for ( var i = 0; i < n; i ++ ) {
+            S.setEntry( i, j, A.getEntry( i, j ) );
+          }
+        }
+        R = new JSMatrix( n, n, 0. );
+        for ( var i = 0; i < n; i ++ ) R.setEntry( i, i, 1. );
+
+        iterate();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function checkNumber(n) {
+        if (!isFinite(n)) {
+          alert("entered value is not a NUMBER");
+          return false;
+        }
+        return true;
+      }
+      function scientificFormat( n ) {
+        var an = Math.abs(n);
+        if ( an>=0.01 && an<=100. ) return n.toString();
+        else return n.toExponential();
+      }
+    </script>
+    <br>
+    matrix A:
+    <input
+      type="text"
+      name="matrix_text"
+      value="4,1,0,0;0,4,0,0;0,0,9,1;0,0,0,9"
+      size="100"
+    >
+    <br>
+    <fieldset>
+      <legend> Type of iteration: </legend>
+      <label for="Newton iteration">
+        <input
+        type="radio"
+        checked value="0"
+        id="newton_option_checkbox"
+        name="iteration_radiobox"
+        />
+        Newton Iteration
+      </label>
+      <label for="Denman-Beavers iteration">
+        <input
+        type="radio"
+        checked value="1"
+        id="denman_beavers_option_checkbox"
+        name="iteration_radiobox"
+        />
+        Denman-Beavers Iteration
+      </label>
+    </fieldset>
+    <br>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="matrix_text=document.getElementsByName('matrix_text')[0].value;onStart();"
+    >
+    <br>
+    A =
+    <br>
+    <textarea
+      id="matrix_textarea"
+      cols=75
+      rows=10
+    >
+    </textarea>
+    <br>
+    \( \sqrt{ A } \approx \)
+    <img src=small.gif width=500 height=1>
+    \( \sqrt{ A }^2 - A \approx \)  
+    <br>
+    <textarea
+      id="square_root_textarea"
+      cols=75
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="square_root_error_textarea"
+      cols=75
+      rows=10
+    >
+    </textarea>
+    <br>
+    \( \sqrt{ A }^{-1} \approx \)
+    <img src=small.gif width=475 height=1>
+    \( \sqrt{ A } \sqrt{ A }^{-1} - I \approx \)
+    <br>
+    <textarea
+      id="inverse_square_root_textarea"
+      cols=75
+      rows=10
+    >
+    </textarea>
+    <textarea
+      id="inverse_square_root_error_textarea"
+      cols=75
+      rows=10
+    >
+    </textarea>
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=3
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

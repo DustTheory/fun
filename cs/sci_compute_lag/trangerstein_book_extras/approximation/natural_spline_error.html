@@ -1,0 +1,159 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>twice continuously differenttiable spline approximation to runge
+      function</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    twice continuously differentiable pline approximation to runge function
+    <br>
+    log_10( max error ) vs log_10( number elements )
+    <br>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var farray = new Array();
+      var fparray = new Array();
+      var fpparray = new Array();
+      var fmidpoint = new Number();
+      var nodes = new Array(); // mesh nodes
+      var xipts = new Array(); // canonical interpolation points
+      var n = 1;
+      var w = 1;
+
+      function f( x ) { return 1 / ( 1 + 25 * x * x ); }
+      function fprime( x ) { 
+        return - 50 * x / Math.pow( 1 + 25 * x * x, 2 );
+      }
+//    function f(x) { return Math.pow( x, 2 ); }
+//    function fprime(x) { return 2*Math.pow( x, 1); }
+//    function f(x) { return Math.pow( (x+1)*.5, 3 ); }
+//    function fprime(x) { return 1.5*Math.pow( (x+1)*.5, 2); }
+
+      function computeNodes( ) {
+        nodes = new Array( n + 1 );
+        var dx = 2 / n;
+        nodes[ 0 ] = -1;
+        for ( var i = 1; i < n; i ++ ) nodes[ i ] = i * dx - 1;
+        nodes[ n ] = 1;
+      }
+      function computeSplineSlopes() {
+        var np1 = n + 1;
+        var matrix = new Array( 3 * np1 );
+        for ( var i = 1; i <= n; i ++ ) {
+          matrix[ i ] = nodes[ i ] - nodes[ i - 1 ];
+          matrix[ 2 * np1 + i - 1 ] = matrix[ i ];
+        }
+        matrix[ np1 ] = 2 * matrix[ 1 ];
+        for ( var i = 1; i < n; i ++ ) {
+          matrix[ np1 + i ] = 2 * ( matrix[ i ] + matrix[ 2 * np1 + i ] );
+        }
+        matrix[ np1 + n ] = 2 * matrix[ n ];
+        farray = new Array( np1 );
+        for ( var i = 0; i <= n; i ++ ) farray[ i ] = f( nodes[ i ] );
+        fpparray = new Array( np1 );
+        var divdifi = ( farray[ 1 ] - farray[ 0 ] )
+                / ( nodes[ 1 ] - nodes[ 0 ] );
+        fpparray[ 0 ] = 6 * ( divdifi - fprime( nodes[ 0 ] ) );
+        for ( var i = 1; i < n; i ++ ) {
+          var divdif = ( farray[ i + 1 ] - farray[ i ] )
+                 / ( nodes[ i + 1 ] - nodes[ i ] );
+          fpparray[ i ] = 6 * ( divdif - divdifi );
+          divdifi = divdif;
+        }
+        fpparray[ n ] = 6 * ( fprime( nodes[ n ] ) - divdifi );
+
+        for ( var i = 2; i < n; i ++ ) {
+          matrix[ i ] /= matrix[ n + i ];
+          matrix[ np1 + i ] -= matrix[ i ] * matrix[ 2 * np1 + i - 1 ];
+          fpparray[ i ] -= matrix[ i ] * fpparray[ i - 1 ];
+        }
+        fpparray[ n ] = 0;
+        fpparray[ n - 1 ] /= matrix[ 2 * n ];
+        for ( var i = n - 2; i >= 1; i -- ) {
+          fpparray[ i ] = ( fpparray[ i ]
+            - matrix[ 2 * np1 + i ] * fpparray[ i + 1 ] )
+            / matrix[ np1 + i ];
+        }
+        fpparray[ 0 ] = 0;
+      }
+      function c2SplinePolynomial( i, xi ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering c2SplinePolynomial\n";
+        var h = nodes[ i ] - nodes[ i - 1 ];
+        var sum = farray[ i - 1 ] * ( 1 - xi ) + farray[ i ] * xi
+          - ( fpparray[ i - 1 ] * ( 2 - xi )
+            + fpparray[ i ] * ( 1 + xi ) ) * xi * ( 1 - xi )
+            * Math.pow( h, 2 ) / 6;
+        return sum;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving c2SplinePolynomial\n";
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        interpolate_canvas = document.getElementById("interpolate_canvas");
+        w = interpolate_canvas.width;
+//      w = 4;
+        xarray = new Array();
+        yarray = new Array();
+        var ymax = -Number.MAX_VALUE;
+        var ymin = Number.MAX_VALUE;
+        var kk = 0;
+        for ( var n = 1; n <= 1024; n *= 2, kk ++ ) {
+          computeNodes();
+          computeSplineSlopes();
+          var maxerr = 0;
+          for ( var ii = 1; ii <= n; ii ++ ) {
+            var hi = nodes[ ii ] - nodes[ ii - 1 ];
+            var dw = w * hi * .5;
+            for ( var jj = 0; jj <= dw; jj ++ ) {
+              var xi = jj / dw;
+              var spline = c2SplinePolynomial( ii, xi );
+              maxerr = Math.max( maxerr,
+                Math.abs( spline - f( nodes[ ii - 1 ] + hi * xi ) ) );
+            }
+          }
+//        document.getElementById("debug_textarea").value +=
+//          "k,maxerr = " + kk + " " + maxerr + "\n";
+          if ( maxerr < Number.MIN_VALUE ) break;
+          xarray[ kk ] = Math.log( n ) * Math.LOG10E;
+          yarray[ kk ] = Math.log( maxerr ) * Math.LOG10E;
+          ymax = Math.max( ymax, yarray[ kk ] );
+          ymin = Math.min( ymin, yarray[ kk ] );
+        }
+        gt = new XYGraphTool( interpolate_canvas, "interpolation error",
+          "log_10(n)", "log_10(error)",
+          xarray[ 0 ], xarray[ xarray.length-1 ], ymin, ymax );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], yarray[ 0 ] );
+          for ( var k = 0; k < xarray.length; k ++ ) {
+            gt.drawLine( xarray[ k ], yarray[ k ] );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+    </script>
+    <canvas id="interpolate_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

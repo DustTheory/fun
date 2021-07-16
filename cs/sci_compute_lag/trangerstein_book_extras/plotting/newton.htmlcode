@@ -1,0 +1,13 @@
+\begin{html}
+  <iframe
+    src="code/plotting/newton.html"
+    width=900
+    height=550
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view <a href="code/plotting/newton.html">newton.html</a> correctly,
+    you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

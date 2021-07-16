@@ -1,0 +1,16 @@
+\begin{html}
+  <iframe
+    src="code/integration/romberg.html"
+    width=900
+    height=650
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/integration/romberg.html">
+      romberg.html
+    </a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

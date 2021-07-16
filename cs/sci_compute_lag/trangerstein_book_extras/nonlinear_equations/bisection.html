@@ -1,0 +1,126 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> bisection method </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+      bisection to find a zero of a function
+    </h2>
+    <script src=../computer/numberToHexadecimal.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      function f( x ) { return x * x - 4 * Math.sin( x ); }
+//    function f( x ) { return x * x * x; }
+      var canvas = undefined;
+      var a = 1;
+      var b = 2;
+//    var a = -1;
+//    var b = Math.sqrt(2);
+      var h = undefined;
+      var fa = undefined;
+      var fb = undefined;
+      var sign_fa = undefined;
+      var sign_fb = undefined;
+      var soln = undefined;
+      var it = 0;
+      var gt = undefined;
+      var midpoint_ok = undefined;
+
+//    if b is very near a,
+//      successive values of mesh points will be identical, so
+//      successive values of function values will be identical, so
+//      drawLine will stay at the same point
+//    the plot will consist of straight lines between the distinct pairs
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        a = 1;
+        b = 2;
+//      a = -1;
+//      b = Math.sqrt(2);
+        h = b - a;
+        fa = f( a );
+        fb = f( b );
+        sign_fa = ( fa >= 0 ? 1 : -1 );
+        sign_fb = ( fb >= 0 ? 1 : -1 );
+        soln = undefined;
+        it = 0;
+        gt = undefined;
+        midpoint_ok = true;
+        canvas = document.getElementById("bisection_canvas");
+        gt = new XYGraphTool( canvas,
+          "bisection", "x", "f ", a, b, 0, 1 );
+        bisectionIteration();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+
+      function bisectionIteration() {
+        if ( midpoint_ok && Math.abs( fa ) > 0 && Math.abs( fb ) > 0 ) {
+          gt.plotFunction( f, a, b, canvas.width - 1 );
+          h *= 0.5;
+          midpoint = a + h;
+          if ( midpoint <= a ) { // force iteration to stop
+            midpoint_ok = false;
+          } else if ( midpoint >= b ) { // force iteration to stop
+            midpoint_ok = false;
+          } else {
+            var fm = f( midpoint );
+            var sign_fm = ( fm >= 0 ? 1 : -1 );
+            document.getElementById("debug_textarea").value =
+              "it,a,b,b-a = " + it + " " + a + " " + b + " " + h + "\n";
+            if ( sign_fm * sign_fa > 0 ) {
+              a = midpoint;
+              fa = fm;
+              sign_fa = sign_fm;
+            } else {
+              b = midpoint;
+              fb = fm;
+              sign_fb = sign_fm;
+            }
+            it ++;
+          }
+        } else {
+          gt.setBgColor( "white" );
+          gt.newPage();
+          document.getElementById("debug_textarea").value =
+            "midpoint not between a and b, or function zero at endpoint\n";
+          document.getElementById("debug_textarea").value +=
+            "a,b,fa,fb = " + a + " " + b + " " + fa + " " + fb + "\n";
+          document.getElementById("debug_textarea").value +=
+            "a,b = " + numberToHexadecimal(a) + " " + numberToHexadecimal(b)
+            + "\n";
+        }
+      }
+    </script>
+    <canvas id="bisection_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <input
+      type="button"
+      value="Perform another bisection iteration"
+      onclick="bisectionIteration();"
+    >
+    <input
+      type="button"
+      value="Restart bisection iteration from the beginning"
+      onclick="onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+    <script language="javascript"> XYGraphTool.onload("bisection_canvas");onStart(); </script>
+  </BODY>
+</HTML>

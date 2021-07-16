@@ -1,0 +1,16 @@
+\begin{html}
+  <iframe
+    src="code/integration/quadrature.html"
+    width=900
+    height=550
+    align=left
+  >
+    Your browser does not support inline frames.
+    To view
+    <a href="code/integration/quadrature.html">
+      quadrature.html
+    </a>
+    correctly, you will need to update your web brower.
+  </iframe>
+  <br clear=left>
+\end{html}

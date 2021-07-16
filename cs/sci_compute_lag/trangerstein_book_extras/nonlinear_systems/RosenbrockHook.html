@@ -1,0 +1,178 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Rosenbrock Hook Step </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+    <script src=../plotting/glMatrix-0.9.5.min.js></script>
+    <script src=../plotting/VolGraphTool.js></script>
+    <script src=../plotting/AreaGraphTool.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script src=../plotting/Colormap.js></script>
+    <script src=../plotting/Palette.js></script>
+    <script src=../linear_algebra/Complex.js></script>
+  </HEAD>
+  <BODY>
+    <h2>
+      Rosenbrock's function
+      \( \phi(x) = \frac{1}{2} \left\|
+        \begin{bmatrix} 10 (x_2-x_1^2) \\ 1-x_1 \end{bmatrix} \right\|_2^2
+      \)
+    </h2>
+    <script language="javascript">
+      var soln = undefined;
+      var gt = undefined;
+      var cm = undefined;
+      var nc = [ 100, 100 ];
+      var low = [ -2, -2 ];
+      var high = [ 2, 2 ];
+      var roundoff = undefined;
+      var sqrtrnd = undefined;
+      var npts = 500;
+
+      function f( x, y ) {
+        var a=10*(y-x*x);
+        var b=1-x;
+        return 0.5 * ( a * a + b * b );
+      }
+      function gf( x, y ) { // gradient of f
+        var a=10*(y-x*x);
+        var b=1-x;
+        return new Array( -20 * x * a - b, 10 * a );
+      }
+      function Hf( x, y ) { // Hessian of f
+        var a=10*(y-x*x);
+        var b=1-x;
+        return new Array( -20 * a + 400 * x * x + 1, - 200 * x,
+                         -200 * x, 100 );
+      }
+      function choldecomp( A, maxoffl ) {
+        var minl = maxoffl * Math.sqrt( sqrtrnd );
+        if ( maxoff <= 0 ) {
+          maxoffl = Math.max( Math.abs( A[ 0 ] ), Math.abs( A[ 3 ] ) );
+        }
+        var minl2 = maxoffl * sqrtrnd;
+        var mu = 0;
+
+        var minlkk = Math.max(
+          Math.max( Math.abs( A[0] ), Math.abs( A[1] ) ) / maxoffl, minl );
+        if ( A[0] > minlkk ) A[0] = Math.sqrt( A[0] );
+        else {
+          minlkk = Math.max( minlkk, minl2 );
+          mu = math.max( mu, minlkk * minlkk - A[0] );
+          A[0] = minlkk;
+        }
+        A[1] /= A[0];
+        A[3] = A[3] - A[1] * A[1];
+
+        minlkk = Math.max( Math.abs( A[3] ) / maxoffl, minl );
+        if ( A[3] > minlkk ) A[3] = Math.sqrt( A[3] );
+        else {
+          minlkk = Math.max( minlkk, minl2 );
+          mu = math.max( mu, minlkk * minlkk - A[3] );
+          A[3] = minlkk;
+        }
+        return mu;
+      }
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        roundoff = 1;
+        while ( 1 - roundoff < 1 ) roundoff *= 0.5;
+        roundoff *=2.
+        sqrtrnd = Math.sqrt( roundoff );
+
+        var p = new Palette();
+        cm = new Colormap( p );
+        gt = new AreaGraphTool(
+          document.getElementById("contour_canvas"),"contour test",
+          "x", "y ", low, high, cm );
+        gt.setBgColor();
+        gt.newPage();
+        gt.setFgColor( );
+        gt.drawAxes();
+        gt.contourFunction( f, nc, 30 );
+        gt.mouseUp = firstIteration;
+        gt.watchMouse();
+        gt.listen();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+
+      function firstIteration( e ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering firstIteration\n";
+        soln = new Array( gt.mouse_coords[0], gt.mouse_coords[1] ); 
+        var fval = f( soln[0], soln[1] );
+        var gfval = gf( soln[0], soln[1] );
+        var steepest_descent = new Array( - gfval[0], - gfval[1] );
+
+        var Hfval = Hf( soln[0], soln[1] );
+        var det = Hfval[ 0 ] * Hfval[ 3 ] - Hfval[ 1 ] * Hfval[ 2 ];
+        var newton = new Array( 
+          ( Hfval[ 2 ] * gfval[ 1 ] - Hfval[ 3 ] * gfval[ 0 ] ) / det,
+          ( Hfval[ 1 ] * gfval[ 0 ] - Hfval[ 0 ] * gfval[ 1 ] ) / det );
+
+        gt.setBgColor();
+        gt.newPage();
+        gt.setFgColor( );
+        gt.drawAxes();
+        gt.contourFunction( f, nc, 30 );
+
+        gt.setFgColor( );
+        gt.beginDrawing(); // trust region
+          var positive_definite = false;
+          for ( var n = 0; n <= npts; n ++ ) {
+            var mu = 10 * n;
+            det = ( Hfval[ 0 ] + mu ) * ( Hfval[ 3 ] + mu )
+                - Hfval[ 1 ] * Hfval[ 2 ];
+            if ( det > 0 && Hfval[ 0 ] + mu > 0 && Hfval[ 3 ] + mu > 0 ) {
+              var hook = new Array(
+                ( Hfval[ 2 ] * gfval[ 1 ] 
+                - ( Hfval[ 3 ] + mu ) * gfval[ 0 ] ) / det,
+                ( Hfval[ 1 ] * gfval[ 0 ] 
+                - ( Hfval[ 0 ] + mu ) * gfval[ 1 ] ) / det );
+              if ( ! positive_definite ) {
+                gt.movePen( [ soln[0] + hook[0], soln[1] + hook[1] ] );
+                positive_definite = true;
+              } else {
+                gt.drawLine( [ soln[0] + hook[0], soln[1] + hook[1] ] );
+              }
+            }
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving firstNewtonIteration\n";
+      }
+    </script>
+    <canvas id="contour_canvas" width="500" height="500">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Click mouse in contour plot to select base \( z \) of hook step
+    <br>
+    Hook curve \( \{ z - [ H_\phi(z) + I \lambda ]^{-1} g_\phi(z) : 
+    H_\phi(z) + I \lambda > 0 \} \)
+    is plotted in black
+    <br>
+    <input
+      type="button"
+      value="Choose another hook step"
+      onclick="onStart();"
+    >
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=2
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

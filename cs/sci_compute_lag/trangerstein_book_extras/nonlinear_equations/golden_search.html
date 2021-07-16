@@ -1,0 +1,170 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> golden search </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+      golden search to find a minimum of a unimodal function
+    </h2>
+    <script src=../computer/numberToHexadecimal.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      function f( x ) { 
+        return 1 - 2 * Math.exp( - Math.abs( x + 2 * (x-5) ) );
+      }
+
+      var canvas = undefined;
+      var a = 0;
+      var b = 6;
+      var c = undefined;
+      var d = undefined;
+      var tau = undefined;
+      var fa = undefined;
+      var fb = undefined;
+      var fc = undefined;
+      var fd = undefined;
+      var npts = 300;
+      var xarray = new Array( npts + 1 );
+      var farray = new Array( npts + 1 );
+      var it = 0;
+      var gt = undefined;
+
+      function computePlotPoints( ) {
+        var dx = ( b - a ) * 0.0625;
+        var xlo = a - dx;
+        var xhi = b + dx;
+        var dx = ( xhi - xlo ) / npts;
+        var fmax = f( xlo ); 
+        var fmin = fmax; 
+        xarray[ 0 ] = xlo;
+        farray[ 0 ] = fmax;
+        for ( var i = 1; i <= npts; i ++ ) {
+          xarray[ i ] = xarray[ i - 1 ] + dx;
+          farray[ i ] = f( xarray[ i ] );
+          fmin = Math.min( fmin, farray[ i ] );
+          fmax = Math.max( fmax, farray[ i ] );
+        }
+        return {
+          flo : fmin,
+          fhi : fmax
+        }
+      }
+
+      function plotPoints( ) {
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], farray[ 0 ] );
+          for ( var i = 1; i < xarray.length; i ++ ) {
+            gt.drawLine( xarray[ i ], farray[ i ] );
+          }
+        gt.endDrawing();
+      }
+
+      function drawPlot( ) {
+        var bounds = computePlotPoints();
+        gt = new XYGraphTool( canvas,
+          "golden search", "x", "f ", a, b, bounds.flo, bounds.fhi );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawBoundingBox();
+        gt.drawAxes();
+        gt.setFgColor( "blue" );
+        plotPoints( );
+        gt.setFgColor( "red" );
+        gt.drawCross( a, fa, ( b - a ) * 0.02 );
+        gt.drawCross( b, fb, ( b - a ) * 0.02 );
+        gt.drawCross( c, fc, ( b - a ) * 0.02 );
+        gt.drawCross( d, fd, ( b - a ) * 0.02 );
+      }
+
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        canvas = document.getElementById("golden_search_canvas");
+        fa = f(a);
+        fb = f(b);
+        tau = 2 / ( 1 + Math.sqrt( 5 ) );
+        var h = b - a;
+        c = a + tau * h;
+        d = b - tau * h;
+        fc = f(c);
+        fd = f(d);
+        if ( Math.max( fc, fd ) >= Math.max( fa, fb ) ) {
+          document.getElementById("debug_textarea").value =
+            "function not unimodal\n";
+          return;
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "  a,d,c,b = " + a + " " + d + " " + c + " " + b + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "  fa,fd,fc,fb = " + fa + " " + fd + " " + fc + " " + fb + "\n";
+        drawPlot( );
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+
+      function goldenSearch() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering goldenSearch\n";
+        if ( fd > fc ) {
+          a = d;
+          fa = fd;
+          d = c;
+          fd = fc;
+          c = a + tau * ( b - a );
+          fc = f(c);
+          if ( fc >= Math.max( fa, fb ) ) {
+            document.getElementById("debug_textarea").value =
+              "function not unimodal\n";
+            return;
+          }
+        } else {
+          b = c;
+          fb = fc;
+          c = d;
+          fc = fd;
+          d = b - tau * ( b - a );
+          fd = f(d);
+          if ( fd >= Math.max( fa, fb ) ) {
+            document.getElementById("debug_textarea").value =
+              "function not unimodal\n";
+            return;
+          }
+        }
+        var h = b - a;
+        document.getElementById("debug_textarea").value =
+          "  b - a = " + h + "\n";
+        document.getElementById("debug_textarea").value +=
+          "  a,d,c,b = " + a + " " + d + " " + c + " " + b + "\n";
+//      document.getElementById("debug_textarea").value +=
+//        "  fa,fd,fc,fb = " + fa + " " + fd + " " + fc + " " + fb + "\n";
+        drawPlot( );
+//      document.getElementById("debug_textarea").value +=
+//        "leaving goldenSearch\n";
+      }
+    </script>
+    <canvas id="golden_search_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <input
+      type="button"
+      value="Perform another golden search iteration"
+      onclick="goldenSearch();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=5
+    >
+    </textarea>
+    <script language="javascript"> XYGraphTool.onload("golden_search_canvas");onStart(); </script>
+  </BODY>
+</HTML>

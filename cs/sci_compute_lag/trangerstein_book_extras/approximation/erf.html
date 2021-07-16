@@ -1,0 +1,124 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>power series approximation to error function</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    power series approximation to error function
+    $$\text{erf}(x) \equiv \frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} \; d t
+    \approx \frac{2}{\sqrt{\pi}} \sum_{j=0}^n 
+    \frac{ ( -1)^j x^{2j+1} }{ (2j+1) !}$$
+    <br>
+    erf in red, power series in blue
+    <br>
+    <script src=erf.js></script>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var xarray = new Array();
+      var earray = new Array();
+      var farray = new Array();
+      var n = undefined;
+      var xmax = 4;
+      function computePoints( n, w ) {
+//      document.getElementById("debug_textarea").value +=
+//        "entering computePoints\n";
+//      document.getElementById("debug_textarea").value +=
+//        "n,w = " + n + " " + w + "\n";
+        xarray = new Array( w + 1 );
+        earray = new Array( w + 1 );
+        farray = new Array( w + 1 );
+        var dx = xmax / w;
+        for ( var ii = 0; ii <= w; ii ++ ) {
+          var x = dx * ii;
+          var sum = 0;
+          var sign = 1;
+          var x2 = x * x;
+          var xpower = x;
+          var factorial = 1;
+          for ( var j = 0; j <= n; j ++ ) {
+            sum += sign * xpower / factorial;
+            sign = - sign;
+            xpower *= x2;
+            factorial *= ( 2 * j + 2 ) * ( 2 * j + 3 );
+          }
+          xarray[ ii ] = x;
+          earray[ ii ] = erf( x );
+          farray[ ii ] = sum * 2 / Math.sqrt( Math.PI );
+//        document.getElementById("debug_textarea").value +=
+//          "i,x,erf,series = " + ii + " " + x + " " + earray[ ii ] + " "
+//          + farray[ ii ] + "\n";
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "leaving computePoints\n";
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        integral_canvas = document.getElementById("integral_canvas");
+        gt = new XYGraphTool( integral_canvas, "error function", "x", "f",
+          0, xmax, 0, 1 );
+        n = 0;
+        plotCase();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function plotCase() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotCase\n";
+        n++;
+        document.getElementById("debug_textarea").value =
+          "n = " + n + "\n";
+//      computePoints( n, 4 );
+        computePoints( n, integral_canvas.width );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], earray[ 0 ] );
+          for ( var ii = 1; ii < xarray.length; ii ++ ) {
+            gt.drawLine( xarray[ ii ], earray[ ii ] );
+          }
+        gt.endDrawing();
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+          gt.movePen( xarray[ 0 ], farray[ 0 ] );
+          for ( var ii = 1; ii < xarray.length; ii ++ ) {
+            gt.drawLine( xarray[ ii ], farray[ ii ] );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotCase\n";
+      }
+    </script>
+    <canvas id="integral_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    <input
+      type="button"
+      value="Start Over"
+      onclick="onStart();"
+    >
+    <br>
+    <input
+      type="button"
+      value="Try another term in power series"
+      onclick="plotCase();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=1
+    >
+    </textarea>
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

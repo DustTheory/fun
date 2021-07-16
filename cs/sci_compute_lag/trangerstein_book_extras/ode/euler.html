@@ -1,0 +1,257 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> simple Euler method </TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+      Euler's method for \( u^\prime(t) = -10 u(t), u(0) = 1, 0 < t < 1 \)
+    </h2>
+    <script language="javascript"> 
+      var euler_nsteps=1;
+      var euler_u0=1;
+      var euler_rate=-10;
+      var euler_tmax=1;
+      var TICK_LENGTH=0.01;
+      function eulerExact(t) { return euler_u0*Math.exp(euler_rate*t); }
+
+      function plotEuler(previous) {
+        if (!checkPositiveInteger(euler_nsteps)) return;
+
+        var t_array=[];
+        var u_array=[];
+        var ubounds={
+          umax : -Number.MAX_VALUE,
+          umin :Number.MAX_VALUE
+        };
+        if (previous) runEuler(euler_nsteps,t_array,u_array,ubounds);
+        else {
+          ubounds.umax=1;
+          ubounds.umin=0;
+        }
+        var user_coords={
+          xhi : euler_tmax,
+          xlen : euler_tmax,
+          xlo : 0,
+          yhi : ubounds.umax,
+          ylen : ubounds.umax-ubounds.umin,
+          ylo : ubounds.umin
+        };
+
+        var cnvs = document.getElementById("euler_canvas");
+        if (null==cnvs || !cnvs.getContext) return;
+        var context=cnvs.getContext("2d");
+        
+        var axes={};
+
+        if (previous) context.clearRect(0, 0, cnvs.width, cnvs.height);
+
+        context.strokeStyle="black";
+        drawAxes(context,user_coords,"t","u");
+
+        context.strokeStyle="green";
+        var dx=user_coords.xlen/cnvs.width;
+        context.beginPath();
+          movePen(context,user_coords,user_coords.xlo,
+                  eulerExact(user_coords.xlo));
+          for (var i=1;i<=cnvs.width;i++) {
+            var xi=user_coords.xlo+i*dx;
+            drawLine(context,user_coords,xi,eulerExact(xi));
+          }
+        context.stroke();
+
+        if (previous) {
+          context.strokeStyle="red";
+          context.beginPath();
+            movePen(context,user_coords,t_array[0],u_array[0]);
+            for (var i=1;i<t_array.length;i++) {
+              drawLine(context,user_coords,t_array[i],u_array[i]);
+            }
+          context.stroke();
+        }
+      }
+
+      function checkPositiveInteger(n) {
+        if (!isFinite(n)) {
+          alert("entered value is not a NUMBER");
+          return false;
+        } else {
+          n=Math.round(n);
+          if (n<=0) {
+            alert("entered value is not a POSITIVE integer");
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function runEuler(n,t,u,ubds) {
+        t[0]=0;
+        u[0]=euler_u0;
+        ubds.umin=u[0];
+        ubds.umax=u[0];
+        var dt=1/n;
+        var euler_rate_dt=euler_rate*dt;
+        for (var i=1;i<=n;i++) {
+          t[i]=t[i-1]+dt;
+          u[i]=u[i-1]+euler_rate_dt*u[i-1];
+          ubds.umin=Math.min(ubds.umin,u[i]);
+          ubds.umax=Math.max(ubds.umax,u[i]);
+        }
+      }
+
+      function drawAxes(ctx,coords,x_label,y_label) {
+        var xtic=ticSpacing(coords.xlo,coords.xhi);
+        var xfirst_tic=Math.floor(coords.xlo/xtic);
+        var xlast_tic=Math.ceil(coords.xhi/xtic);
+        var xaxis=Math.max(xtic*xfirst_tic,Math.min(0,xtic*xlast_tic));
+        var ytic=ticSpacing(coords.ylo,coords.yhi);
+        var yfirst_tic=Math.floor(coords.ylo/ytic);
+        var ylast_tic=Math.ceil(coords.yhi/ytic);
+        var yaxis=Math.max(ytic*yfirst_tic,Math.min(0,ytic*ylast_tic));
+        var tic_pixels=
+          TICK_LENGTH*Math.max(ctx.canvas.width,ctx.canvas.height);
+        var tic_xlen=coords.xlen*tic_pixels/ctx.canvas.width;
+        var tic_ylen=coords.ylen*tic_pixels/ctx.canvas.height;
+        ctx.beginPath();
+          movePen(ctx,coords,coords.xlo,yaxis);
+          drawLine(ctx,coords,coords.xhi,yaxis);
+        ctx.stroke();
+        for (var i=xfirst_tic;i<=xlast_tic;i++) {
+          var x=i*xtic;
+          ctx.beginPath();
+            movePen(ctx,coords,x,yaxis-tic_ylen);
+            drawLine(ctx,coords,x,yaxis+tic_ylen);
+          ctx.stroke();
+          if (i<0) {
+            ctx.textAlign="right";
+            ctx.textBaseline="top";
+            putString(ctx,coords,x,yaxis,String(x));
+          } else if (i>0) {
+            ctx.textAlign="left";
+            ctx.textBaseline="top";
+            putString(ctx,coords,x,yaxis,String(x));
+          }
+        }
+        ctx.textAlign="left";
+        ctx.textBaseline="bottom";
+        putString(ctx,coords,xlast_tic*xtic,yaxis,x_label);
+        ctx.beginPath();
+          movePen(ctx,coords,xaxis,coords.ylo);
+          drawLine(ctx,coords,xaxis,coords.yhi);
+        ctx.stroke();
+        for (var i=yfirst_tic;i<=ylast_tic;i++) {
+          var y=i*ytic;
+          ctx.beginPath();
+            movePen(ctx,coords,xaxis-tic_xlen,y);
+            drawLine(ctx,coords,xaxis+tic_xlen,y);
+          ctx.stroke();
+          if (i<0) {
+            ctx.textAlign="right";
+            ctx.textBaseline="bottom";
+            putString(ctx,coords,xaxis,y,String(y));
+          } else if (i>0) {
+            ctx.textAlign="right";
+            ctx.textBaseline="top";
+            putString(ctx,coords,xaxis,y,String(y));
+          }
+        }
+        if (ylast_tic>0) ctx.textAlign="right";
+        else ctx.textAlign="left";
+        ctx.textBaseline="bottom";
+        putString(ctx,coords,xaxis,ylast_tic*ytic,y_label);
+      }
+
+      function ticSpacing(lo,hi) {
+        var sig_digit=Math.pow(10,Math.floor(Math.LOG10E*Math.log(hi-lo)));
+        var digit_count=Math.ceil(hi/sig_digit)-Math.ceil(lo/sig_digit);
+        if (digit_count>10) return 2*sig_digit;
+        else if (digit_count>=5) return sig_digit;
+        else if (digit_count>=2) return 0.5*sig_digit;
+        else return 0.25*sig_digit;
+      }
+      
+      function putString(ctx,user_coords,x,y,s) {
+        var dx=user_coords.xlen*0.05;
+        var xlodx=user_coords.xlo-dx;
+        var xhidx=user_coords.xhi+dx;
+        var xlendx=xhidx-xlodx;
+        var dy=user_coords.ylen*0.05;
+        var ylody=user_coords.ylo-dy;
+        var yhidy=user_coords.yhi+dy;
+        var ylendy=yhidy-ylody;
+        ctx.strokeText(s,(x-xlodx)/xlendx*ctx.canvas.width,
+                         (yhidy-y)/ylendy*ctx.canvas.height); 
+      }
+
+      function movePen(ctx,user_coords,x,y) {
+        var dx=user_coords.xlen*0.05;
+        var xlodx=user_coords.xlo-dx;
+        var xhidx=user_coords.xhi+dx;
+        var xlendx=xhidx-xlodx;
+        var dy=user_coords.ylen*0.05;
+        var ylody=user_coords.ylo-dy;
+        var yhidy=user_coords.yhi+dy;
+        var ylendy=yhidy-ylody;
+        ctx.moveTo((x-xlodx)/xlendx*ctx.canvas.width,
+                   (yhidy-y)/ylendy*ctx.canvas.height);
+      }
+
+      function drawLine(ctx,user_coords,x,y) {
+        var dx=user_coords.xlen*0.05;
+        var xlodx=user_coords.xlo-dx;
+        var xhidx=user_coords.xhi+dx;
+        var xlendx=xhidx-xlodx;
+        var dy=user_coords.ylen*0.05;
+        var ylody=user_coords.ylo-dy;
+        var yhidy=user_coords.yhi+dy;
+        var ylendy=yhidy-ylody;
+        ctx.lineTo((x-xlodx)/xlendx*ctx.canvas.width,
+                   (yhidy-y)/ylendy*ctx.canvas.height);
+      }
+
+/*
+      function screenCoords(ctx,user_coords,x,y) {
+        var dx=user_coords.xlen*0.05;
+        var xlodx=user_coords.xlo-dx;
+        var xhidx=user_coords.xhi+dx;
+        var xlendx=xhidx-xlodx;
+        var dy=user_coords.ylen*0.05;
+        var ylody=user_coords.ylo-dy;
+        var yhidy=user_coords.yhi+dy;
+        var ylendy=yhidy-ylody;
+        var screen_coords={
+          x : (x-xlodx)/xlendx*ctx.canvas.width,
+          y : (yhidy-y)/ylendy*ctx.canvas.height
+        }
+        return screen_coords;
+      }
+*/
+    </script>
+
+    Enter number of steps for Euler's method:
+    <input
+      type="number"
+      name="euler_nsteps_input" 
+      value="3" 
+      onchange="checkPositiveInteger(document.getElementsByName('euler_nsteps_input')[0].value);"
+      size="4"
+    >
+    <input
+      type="button" 
+      value="Compare Euler (red) to exact (green)" 
+      onclick="euler_nsteps=document.getElementsByName('euler_nsteps_input')[0].value;plotEuler(true);"
+    >
+    <br>
+    <canvas id="euler_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <script language="javascript"> plotEuler(false); </script>
+  </BODY>
+</HTML>
+<html><head></head><body></body></html>

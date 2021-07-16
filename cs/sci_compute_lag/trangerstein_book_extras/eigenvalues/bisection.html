@@ -1,0 +1,310 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Bisection for Eigenvalue of Symmetric Tridiagonal Matrix </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Bisection for Eigenvalue of Symmetric Tridiagonal Matrix </h2>
+    <script src=../plotting/XYGraphTool.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+    var diagonal_text="6;5;4;3;2";
+    var subdiagonal_text="-1;-1;-1;-1";
+    var pivmin = LaPack0.dlamch("S");
+    var d = new JSVector();
+    var e = new JSVector();
+    var e2 = new JSVector();
+    var A = Number.MAX_VALUE;
+    var B = -Number.MAX_VALUE;
+    var pA = -Number.MAX_VALUE;
+    var pB = Number.MAX_VALUE;
+    var a = undefined;
+    var b = undefined;
+    var desired = 0;
+    var colors = [ "red", "green", "blue", "yellow", "cyan", "magenta" ];
+
+    function sturmSequence( lambda ) {
+      var n = d.length();
+      var p = new JSVector( n, 1. );
+      p.setEntry( 1 , ( lambda - d.getEntry( 0 ) ) / e.getEntry( 0 ) );
+      for ( var j = 1; j < n - 1; j ++ ) {
+        p.setEntry( j + 1, ( ( lambda - d.getEntry( j ) ) * p.getEntry( j )
+          - e.getEntry( j - 1 ) * p.getEntry( j - 1 ) ) / e.getEntry( j ) );
+      }
+      return p;
+    }
+    function eigenvectorResidual( lambda, p ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering eigenvectorResidual, lambda = " + lambda + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "p = " + p.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "d = " + d.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "e = " + e.toString() + "\n";
+      var n = d.length();
+      var r = new JSVector( n, 0. );
+      r.setEntry( 0, ( d.getEntry( 0 ) - lambda ) * p.getEntry( 0 )
+                   + e.getEntry( 0 ) * p.getEntry( 1 ) );
+      for ( var j = 1; j < n - 1; j ++ ) {
+        r.setEntry( j, ( d.getEntry( j ) - lambda ) * p.getEntry( j )
+          + e.getEntry( j - 1 ) * p.getEntry( j - 1 )
+          + e.getEntry( j ) * p.getEntry( j + 1 ) );
+      }
+      r.setEntry( n - 1,
+        ( d.getEntry( n - 1 ) - lambda ) * p.getEntry( n - 1 )
+        + e.getEntry( n - 2 ) * p.getEntry( n - 2 ) );
+//    document.getElementById("debug_textarea").value +=
+//      "r = " + r.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "p norm = " + p.norm(2) + "\n";
+      r.divideEquals( p.norm(2) );
+//    document.getElementById("debug_textarea").value +=
+//      "leaving eigenvectorResidual, r = " + r.toString() + "\n";
+      return r;
+    }
+    function numberZerosLessThan( lambda ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering numberZerosLessThan, lambda = " + lambda + "\n";
+      var tmp = d.getEntry( 0 ) - lambda;
+      var count = 0;
+      if ( tmp <= pivmin ) {
+        count = 1;
+        tmp = Math.min( tmp, - pivmin );
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "tmp, count = " + tmp + " " + count + "\n";
+      for ( var j = 1; j < d.length(); j ++ ) {
+        tmp = d.getEntry( j ) - e2.getEntry( j - 1 ) / tmp - lambda;
+        if ( tmp <= pivmin ) {
+          count ++;
+          tmp = Math.min( tmp, - pivmin );
+        }
+//      document.getElementById("debug_textarea").value +=
+//        "j, tmp, count = " + j + " " + tmp + " " + count + "\n";
+      }
+      return count;
+//    document.getElementById("debug_textarea").value +=
+//      "leaving numberZerosLessThan, lambda = " + lambda + "\n";
+    }
+    function plotPolynomials() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering plotPolynomials\n";
+//    document.getElementById("debug_textarea").value +=
+//      "pA,pB = " + pA + " " + pB + "\n";
+      var plot_canvas = document.getElementById("plot_canvas");
+      w = plot_canvas.width;
+      var pmin = Number.MAX_VALUE;
+      var pmax = -Number.MAX_VALUE;
+      var dw = ( pB - pA ) / w;
+      for ( var i = 0; i <= w; i ++ ) {
+        var x = pA + i * dw;
+        var p = sturmSequence( x );
+//      document.getElementById("debug_textarea").value +=
+//        "p( " + x + ") = " + p.toString() + "\n";
+        for ( var j = 0; j < p.length(); j ++ ) {
+          pmin = Math.min( pmin, p.getEntry( j ) );
+          pmax = Math.max( pmax, p.getEntry( j ) );
+        }
+      }
+      gt = new XYGraphTool( plot_canvas, "Sturm polynomials",
+        "x", "p", pA, pB, pmin, pmax );
+      gt.setBgColor( "white" );
+      gt.newPage();
+      gt.setFgColor( "black" );
+      gt.drawAxes();
+      for ( var j = 0; j < p.length(); j ++ ) {
+        gt.setFgColor( colors[ j ] );
+        gt.beginDrawing();
+          var p = sturmSequence( pA );
+          gt.movePen( pA, p.getEntry( j ) );
+          for ( var i = 1; i <= w; i ++ ) {
+            var x = pA + i * dw;
+            var p = sturmSequence( x );
+            gt.drawLine( x, p.getEntry( j ) );
+          }
+        gt.endDrawing();
+      }
+      if ( a !== undefined ) {
+        gt.beginDrawing();
+          gt.setFgColor( "green" );
+          gt.movePen( a, pmin );
+          gt.drawLine( a, pmax );
+        gt.endDrawing();
+      }
+      if ( b !== undefined ) {
+        gt.beginDrawing();
+          gt.setFgColor( "red" );
+          gt.movePen( b, pmin );
+          gt.drawLine( b, pmax );
+        gt.endDrawing();
+      }
+//    document.getElementById("debug_textarea").value +=
+//      "leaving plotPolynomials\n";
+    }
+    function bisect( ) {
+//    document.getElementById("debug_textarea").value +=
+//      "entering bisect\n";
+      var lambda = 0.5 * ( a + b );
+      var bma = b - a;
+      document.getElementById("debug_textarea").value =
+        "lambda,b-a = " + " " + lambda + " " + bma + "\n";
+      var count = numberZerosLessThan( lambda );
+//    document.getElementById("debug_textarea").value +=
+//      "lambda,count,desired = " + lambda + " " + count + " "
+//      + desired + "\n";
+      if ( count > desired ) b = lambda;
+      else a = lambda;
+      plotPolynomials();
+      var p = sturmSequence( lambda ); 
+      document.getElementById("debug_textarea").value +=
+        "eigenvector x = " + p.toString() + "\n";
+      var r = eigenvectorResidual( lambda, p );
+      document.getElementById("debug_textarea").value +=
+        "residual ( A x - x lambda ) / || x || = " + r.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "leaving bisect\n";
+    }
+    function onStart() {
+//    document.getElementById("debug_textarea").value +=
+//      "entering onStart\n";
+      d.parse( diagonal_text );
+      e.parse( subdiagonal_text );
+      e2 = new JSVector( e.length() );
+      var e2max = 0.;
+      for ( var j = 0; j < e.length(); j ++ ) {
+        e2.setEntry( j, Math.pow( e.getEntry( j ) , 2 ) );
+        e2max = Math.max( e2max, e2.getEntry( j ) );
+      }
+      pivmin = Math.max( pivmin, e2max * pivmin );
+//    document.getElementById("debug_textarea").value +=
+//      "d = " + d.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "e = " + e.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "e2 = " + e2.toString() + "\n";
+//    document.getElementById("debug_textarea").value +=
+//      "pivmin = " + pivmin + "\n";
+
+//    Gerschgorin:
+      A = d.getEntry( 0 ) - Math.abs( e.getEntry( 0 ) );
+      B = d.getEntry( 0 ) + Math.abs( e.getEntry( 0 ) );
+      for ( var j = 1; j < e.length(); j ++ ) {
+        var off_diag = Math.abs( e.getEntry( j - 1 ) )
+                     + Math.abs( e.getEntry( j ) );
+        A = Math.min( A, d.getEntry( j ) - off_diag );
+        B = Math.max( B, d.getEntry( j ) + off_diag );
+      }
+      pA = Math.max( pA, A );
+      pB = Math.min( pB, B );
+//    document.getElementById("debug_textarea").value +=
+//      "A,B = " + A + " " + B + "\n";
+      a = undefined;
+      b = undefined;
+      plotPolynomials();
+
+      a = A;
+      b = B;
+      var lam_a = A - pivmin;
+      var count_a = numberZerosLessThan( lam_a );
+//    document.getElementById("debug_textarea").value += 
+//      "number eigenvalues less than " + lam_a + " is " + count_a
+//      + "\n"; 
+//    var lam_b = B + pivmin;
+//    var count_b = numberZerosLessThan( lam_b );
+//    document.getElementById("debug_textarea").value += 
+//      "number eigenvalues less than " + lam_b + " is " + count_b
+//      + "\n"; 
+//    document.getElementById("debug_textarea").value +=
+//      "leaving onStart\n";
+    }
+
+    function scientificFormat( n ) {
+      var an = Math.abs(n);
+      if ( an>=0.01 && an<=100. ) return n.toString();
+      else return n.toExponential();
+    }
+    function checkNumber(n) {
+      if (!isFinite(n)) {
+        alert("entered value is not a NUMBER");
+        return false;
+      }
+      return true;
+    }
+    </script>
+    diagonal =
+    <input
+      type="text"
+      name="diagonal_text"
+      value="6;5;4;3;2"
+      size="50"
+    >
+    <br>
+    sub-diagonal =
+    <input
+      type="text"
+      name="subdiagonal_text"
+      value="-1;-1;-1;-1"
+      size="50"
+    >
+    <br>
+    desired eigenvalue number (from smallest) =
+    <input
+      type="number"
+      name="desired"
+      value="0"
+      onchange="checkNumber(document.getElementsByName('desired')[0].value);"
+      size=4
+    >
+    <br>
+    plot bounds: 
+    <input
+      type="number"
+      name="pA"
+      value="0"
+      onchange="checkNumber(document.getElementsByName('pA')[0].value);"
+      size=4
+    >
+    to
+    <input
+      type="number"
+      name="pB"
+      value="7"
+      onchange="checkNumber(document.getElementsByName('pB')[0].value);"
+      size=4
+    >
+
+    <br>
+    <input
+      type="button"
+      value="Perform next bisection step"
+      onclick="bisect();"
+    >
+    <input
+      type="button"
+      value="Start over"
+      onclick="diagonal_text=document.getElementsByName('diagonal_text')[0].value;subdiagonal_text=document.getElementsByName('subdiagonal_text')[0].value;desired=document.getElementsByName('desired')[0].value;pA=document.getElementsByName('pA')[0].value;pB=document.getElementsByName('pB')[0].value;onStart();"
+    >
+    <br>
+    <canvas id="plot_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    color[ polynomial degree ] = red, green, blue, yellow, cyan, magenta
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=6
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

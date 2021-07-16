@@ -1,0 +1,402 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Implicit QR Method for Bidiagonal Matrix </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Implicit QR Method for Bidiagonal Matrix </h2>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/LaPack1.js></script>
+    <script src=../linear_algebra/BooleanReference.js></script>
+    <script src=../linear_algebra/IntReference.js></script>
+    <script src=../linear_algebra/JSVector.js></script>
+    <script src=../linear_algebra/LaPack0.js></script>
+    <script src=../linear_algebra/NumberReference.js></script>
+    <script language="javascript">
+      var diagonal_text = "6;5;4;3;2";
+      var subdiagonal_text = "-1;-1;-1;-1";
+      var d = new JSVector();
+      var e = new JSVector();
+      var n = 0;
+      var z = undefined;
+      var eps = undefined;
+      var safmin = undefined;
+      var tol = undefined;
+      var tol2 = undefined;
+      var emin = undefined;
+      var qmax = undefined;
+      var zmax = undefined;
+      var dd = undefined;
+      var ee = undefined;
+      var ieee = true;
+      var i0 = undefined;
+      var n0 = undefined;
+      var cbias = 1.5;
+      var ttype = undefined;
+      var dmin1Reference = undefined;
+      var dmin2Reference = undefined;
+      var dnReference = undefined;
+      var dn1Reference = undefined;
+      var dn2Reference = undefined;
+      var gReference = undefined;
+      var tauReference = undefined;
+      var iter = undefined;
+      var nfail = undefined;
+      var ndiv = undefined;
+      var goto170 = false;
+      var iwhila = undefined;
+//    var eps2 = undefined;
+//    var safmax = undefined;
+//    var ssfmax = undefined;
+//    var ssfmin = undefined;
+//    var sigma = undefined;
+//    var l1 = undefined;
+//    var nm1 = undefined;
+//    var l = undefined;
+//    var lend = undefined;
+//    var running_ql = false;
+//    var running_qr = false;
+
+      function printMatrix( l, lend ) {
+        document.getElementById("debug_textarea").value +=
+          "  diagonal = ";
+        for (var ii = 0; ii < n; ii ++ ) {
+          document.getElementById("debug_textarea").value +=
+            d.getEntry( ii ) + " ";
+        }
+        document.getElementById("debug_textarea").value +=
+          "\n  subdiagonal = ";
+        for (var ii = 0; ii < nm1; ii ++ ) {
+          document.getElementById("debug_textarea").value +=
+            e.getEntry( ii ) + " ";
+        }
+        document.getElementById("debug_textarea").value += "\n";
+      }
+      function iterate() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering iterate\n";
+        goto170 = ( n0 < 1 );
+        if ( ! goto170 ) {
+          var desigReference = new NumberReference( 0. );
+          var sigmaReference =
+            new NumberReference( ( n0 == n ?  0. : -z[ 4 * n0 - 2 ] ) );
+          if ( sigmaReference.getValue() < 0. ) {
+            info.setValue( 1 );
+            return;
+          }
+          var emax = 0.;
+          emin = ( n0 > i0 ? Math.abs( z[ 4 * n0 - 6 ] ) : 0. );
+          var qmin = z[ 4 * n0 - 4 ];
+          qmax = qmin;
+          var goto100 = false;
+          for ( i4 = 4 * n0; i4 >= 8; i4 -= 4 ) { // loop 90
+            if ( z[ i4 - 6 ] <= 0. ) {
+              goto100 = true;
+              break;
+            }
+            if ( qmin >= 4. * emax ) {
+              qmin = Math.min( qmin, z[ i4 - 4 ] );
+              emax = Math.max( emax, z[ i4 - 6 ] );
+            }
+            qmax = Math.max( qmax, z[ i4 - 8 ] + z[ i4 - 6 ] );
+            emin = Math.min( emin, z[ i4 - 6 ] );
+          }
+        }
+        if ( ! goto100 ) i4 = 4;
+        i0 = Math.floor( i4 / 4 );
+        pp = 0;
+        if ( n0 - i0 > 1 ) {
+          var dee = z[ 4 * i0 - 4 ];
+          var deemin = dee;
+          var kmin = i0;
+          for ( i4 = 4 * i0 + 1; i4 <= 4 * n0 - 3; i4 += 4 ) { // loop 110
+            dee = z[ i4 - 1 ] * ( dee / ( dee + z[ i4 - 3 ] ) );
+            if ( dee <= deemin ) {
+              deemin = dee;
+              kmin = Math.floor( ( i4 + 3 ) / 4 );
+            }
+          } // 110
+          if ( ( kmin - i0 ) * 2 < n0 - kmin &&
+          deemin <= 0.5 * z[ 4 * n0 - 4 ] ) {
+            ipn4 = 4 * ( i0 + n0 );
+            pp = 2;
+            for ( i4 = 4 * i0; i4 <= 2 ( i0 + n0 - 1 ); i4 += 4 ) { // 120
+              temp = z[ i4 - 4 ];
+              z[ i4 - 4 ] = z[ ipn4 - i4 - 4 ];
+              z[ ipn4 - i4 - 4 ] = temp;
+              temp = z[ i4 - 3];
+              z[ i4 - 3] = z[ ipn4 - i4 - 3 ];
+              z[ ipn4 - i4 - 3 ] = temp;
+              temp = z[ i4 - 2 ];
+              z[ i4 - 2 ] = z[ ipn4 - i4 - 6];
+              z[ ipn4 - i4 - 6] = temp;
+              temp = z[ i4 - 1 ];
+              z[ i4 - 1 ] = z[ ipn4 - i4 - 5];
+              z[ ipn4 - i4 - 5] = temp;
+            } // 120
+          }
+        }
+        var dminReference = new NumberReference( - Math.max( 0.,
+          qmin - 2. * Math.sqrt( qmin ) * Math.sqrt( emax ) ) );
+        var nbig = 100 * ( n0 - i0 + 1 );
+        var goto150 = false;
+        for ( var iwhilb = 1; iwhilb <= nbig; iwhilb ++ ) { // loop 140
+          if ( i0 > n0 ) {
+            goto150 = true;
+            break;
+          }
+          var n0ref = new IntReference( n0 );
+          var ppref = new IntReference( pp );
+          var qmaxref = new NumberReference( qmax );
+          LaPack2.dlasq3( i0, n0ref, z, ppref, dmin, sigma, desig, qmaxref,
+            nfail, iter, ndiv, ieee, ttype, dmin1, dmin2, dn, dn1, dn2, g,
+            tau, 0 );
+          n0 = n0ref.getValue();
+          pp = ppref.getValue();
+          qmax = qmaxref.getValue();
+          pp = 1 - pp;
+          if ( pp == 0 && n0 - i0 >= 3 ) {
+            if ( z[ 4 * n0 - 1 ] <= tol2 * qmax ||
+            z[ 4 * n0 - 2 ] <= tol2 * sigma.getValue() ) {
+              var splt = i0 - 1;
+              qmax = z[ 4 * i0 - 4 ];
+              emin = z[ 4 * i0 - 2 ];
+              var oldemn = z[ 4 * i0 - 1 ];
+              for ( i4 = 4 * i0; i4 <= 4 * ( n0 - 3 ); i4 += 4 ) { // 130
+                if ( z[ i4 - 1 ] <= tol2 * z[ i4 - 4 ] ||
+                z[ i4 - 2 ] <= tol2 * sigma.getValue() ) {
+                  z[ i4 - 2 ] = - sigma.getValue();
+                  splt = Math.floor( i4 / 4 );
+                  qmax = 0.;
+                  emin = z[ i4 + 2];
+                  oldemn = z[ i4 + 3 ];
+                } else {
+                  qmax = Math.max( qmax, z[ i4 ] );
+                  emin = Math.min( emin, z[ i4 - 2 ] );
+                  oldemn = Math.min( oldemn, z[ i4 - 1 ] )
+                }
+              }
+              z[ 4 * n0 - 2 ] = emin;
+              z[ 4 * n0 - 1 ] = oldemn;
+              i0 = splt + 1;
+            }
+          }
+        } // 140
+        
+//      document.getElementById("debug_textarea").value +=
+//        "leaving iterate\n";
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        d.parse( diagonal_text );
+        e.parse( subdiagonal_text );
+
+        n = d.length();
+        if ( n <= 0 ) return;
+//      from dlasq1:
+        if ( n == 1 ) {
+          d.setEntry( 0 , Math.abs( d.getEntry( 0 ) ) );
+          return;
+        } else if ( n == 2 ) {
+          var sigmnref = new NumberReference( );
+          var sigmxref = new NumberReference( );
+          LaPack0.dlas2( d.getEntry( 0 ), e.getEntry( 0 ), d.getEntry( 1 ),
+            sigmnref, sigmxref );
+          d.setEntry( 0, sigmxref.getValue() );
+          d.setEntry( 1, sigmnref.getValue() );
+          return;
+        }
+        var sigmx = 0.;
+        for ( var i = 0; i < n - 1; i ++ ) {
+          d.setEntry( i, Math.abs( d.getEntry( i ) ) );
+          sigmx = Math.max( sigmx, Math.abs( e.getEntry( i ) ) );
+        }
+        d.setEntry( n - 1, Math.abs( d.getEntry( n - 1 ) ) );
+        var info = new IntReference();
+        if ( sigmx <= 0. ) {
+          LaPack0.dlasrt( 'D', n, d, info, ioffd );
+          return;
+        }
+        for ( var i = 0; i < n; i ++ ) {
+          sigmx = Math.max( sigmx, Math.abs( d.getEntry( i ) ) );
+        }
+        eps = LaPack0.dlamch( 'Precision' );
+        safmin = LaPack0.dlamch( 'Safe minimum' );
+        var scale = Math.sqrt( eps / safmin );
+        z = new Array( 4 * n );
+        Blas1.dcopy( n, d.dataArray(), 1, z, 2, 0, 0 );
+        Blas1.dcopy( n - 1, e.dataArray(), 1, z, 2, 0, 1 );
+        LaPack1.dlascl( 'G', 0, 0, sigmx, scale, 2 * n - 1, 1, z,
+          2 * n - 1, info, 0 );
+        for ( var i = 1; i <= 2 * n - 1; i ++ ) {
+          z[ i - 1 ] = Math.pow( z[ i - 1 ], 2 );
+        }
+        z[ 2 * n - 1 ] = 0.;
+
+//      dlasq2:
+        tol = eps * 100.;
+        tol2 = tol * tol;
+        z[ 2 * n - 1 ] = 0.;
+        emin = z[ 1 ];
+        qmax = 0.;
+        zmax = 0.;
+        dd = 0.;
+        ee = 0.;
+        for ( var k = 1; k <= 2 * ( n - 1 ); k += 2 ) { // loop 10
+          if ( z[ k - 1 ] < 0. ) return;
+          else if ( z[ k ] < 0. ) return;
+          dd += z[ k - 1 ];
+          ee += z[ k ];
+          qmax = Math.max( qmax, z[ k - 1 ] );
+          emin = Math.min( emin, z[ k ] );
+          zmax = Math.max( Math.max( qmax, zmax ), z[ k ] );
+        }
+        dd += z[ 2 * n - 2 ];
+        qmax = Math.max( qmax, z[ 2 * n - 2 ] );
+        zmax = Math.max( qmax, zmax );
+        if ( ee == 0. ) {
+          for ( var k = 2; k <= n; k ++ ) { // loop 20
+            z[ k - 1 ] = z[ 2 * k - 2 ];
+          }
+          LaPack0.dlasrt( 'D', n, z, info, 0 );
+          z[ 2 * n - 2 ] = dd;
+          return;
+        }
+        trace = dd + ee;
+        if ( trace == 0. ) {
+          z[ 2 * n - 2 ] = 0.;
+          return;
+        }
+        ieee = 
+          LaPack0.ilaenv( 10, 'dlasq2', 'N', 1, 2, 3, 4 ) == 1 &&
+          LaPack0.ilaenv( 11, 'dlasq2', 'N', 1, 2, 3, 4 ) == 1;
+        for ( var k = 2 * n; k >= 2; k -= 2 ) { // loop 30
+          z[ 2 * k - 1 ] = 0.;
+          z[ 2 * k - 2 ] = z[ k - 1 ];
+          z[ 2 * k - 3 ] = 0.;
+          z[ 2 * k - 4 ] = z[ k - 2 ];
+        }
+        i0 = 1;
+        n0 = n;
+        if ( cbias * z[ 4 * i0 - 4 ] < z[ 4 * n0 - 4 ] ) {
+          var ipn4 = 4 * ( i0 + n0 );
+          for ( var i4 = 4 * i0; i4 <= 2 * ( i0 + n0 - 1 ); i4 += 4 ) { //40
+            var temp = z[ i4 - 4 ];
+            z[ i4 - 4 ] = z[ ipn4 - i4 - 4 ];
+            z[ ipn4 - i4 - 4 ] = temp;
+            temp = z[ i4 - 2 ];
+            z[ i4 - 2 ] = z[ ipn4 - i4 - 6 ];
+            z[ ipn4 - i4 - 6 ] = temp;
+          }
+        }
+        var pp = 0;
+        for ( var k = 1; k <= 2; k ++ ) { // loop 80
+          dd = z[ 4 * n0 + pp - 4 ];
+          for ( i4 = 4 * ( n0 - 1 ) + pp; i4 >= 4 * i0 + pp; i4 -= 4 ) {//50
+            if ( z[ i4 - 2 ] <= tol2 * dd ) {
+              z[ i4 - 2 ] = - 0.;
+              dd = z[ i4 - 4 ];
+            } else {
+              dd = z[ i4 - 4 ] * ( dd / ( dd + z[ i4 - 2 ] ) );
+            }
+          }
+          emin = z[ 4 * i0 + pp ];
+          dd = z[ 4 * i0 + pp - 4 ];
+          for ( var i4 = 4 * i0 + pp; i4 <= 4 * ( n0 - 1 ) + pp; i4 += 4 ) {
+            //60
+            z[ i4 - 2 * pp - 3 ] = dd + z[ i4 - 2 ];
+            if ( z[ i4 - 2 ] <= tol2 * dd ) {
+              z[ i4 - 2 ] = - 0.;
+              z[ i4 - 2 * pp - 3 ] = dd;
+              z[ 2 * pp - 1 ] = 0.;
+              dd = z[ i4 ];
+            } else if ( safmin * z[ i4 ] <
+            z[ i4 - 2 * pp - 3 ]
+            && safmin * z[ i4 - 2 * pp - 3 ] < z[ i4 ] ) {
+              temp = z[ i4 ] / z[ i4 - 2 * pp - 3 ];
+              z[ i4 - 2 * pp - 1 ] = z[ i4 - 2 ] * temp;
+              dd *= temp;
+            } else {
+              z[ i4 - 2 * pp - 1 ] = z[ i4 ]
+              * ( z[ i4 - 2 ] / z[ i4 - 2 * pp - 3 ] );
+              dd = z[ i4 ] * ( dd / z[ i4 - 2 * pp - 3 ] );
+            }
+            emin = Math.min( emin, z[ i4 - 2 * pp - 1 ] );
+          }
+          z[ 4 * n0 - pp - 3 ] = dd;
+          qmax = z[ 4 * i0 - pp - 3 ];
+          for ( i4 = 4 * i0 - pp + 2; i4 <= 4 * n0 - pp - 2; i4 += 4 ) {//70
+            qmax = Math.max( qmax, z[ i4 - 1 ] );
+          } // 70
+          pp = 1 - pp;
+        }
+        ttype = new IntReference( 0 );
+        dmin1Reference = new NumberReference( 0. );
+        dmin2Reference = new NumberReference( 0. );
+        dnReference = new NumberReference( 0. );
+        dn1Reference = new NumberReference( 0. );
+        dn2Reference = new NumberReference( 0. );
+        gReference = new NumberReference( 0. );
+        tauReference = new NumberReference( 0. );
+        iter = new IntReference( 2 );
+        nfail = new IntReference( 0 );
+        ndiv = new IntReference( 2 * ( n0 - i0 ) );
+        goto170 = false;
+        iwhila = 1;
+        iterate();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+
+      function checkNumber(n) {
+        if (!isFinite(n)) {
+          alert("entered value is not a NUMBER");
+          return false;
+        }
+        return true;
+      }
+      function scientificFormat( n ) {
+        var an = Math.abs(n);
+        if ( an>=0.01 && an<=100. ) return n.toString();
+        else return n.toExponential();
+      }
+    </script>
+      diagonal =
+      <input
+        type="text"
+        name="diagonal_text"
+        value="6;5;4;3;2"
+        size="50"
+      >
+      <br>
+      sub-diagonal =
+      <input
+        type="text"
+        name="subdiagonal_text"
+        value="-1;-1;-1;-1"
+        size="50"
+      >
+    <br>
+    <input
+      type="button"
+      value="Iterate"
+      onclick="iterate();"
+    >
+    <input
+      type="button"
+      value="Start Over"
+      onclick="diagonal_text=document.getElementsByName('diagonal_text')[0].value;subdiagonal_text=document.getElementsByName('subdiagonal_text')[0].value;onStart();"
+    >
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=150
+      rows=10
+    >
+    </textarea>
+<!--
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

@@ -1,0 +1,233 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE>tension spline approximation to runge function</TITLE>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ></script>
+  </HEAD>
+  <BODY>
+    <h2>
+    tension spline approximation to runge function
+    </h2>
+    <br>
+    Runge's function in red, spline in blue
+    <br>
+<!--
+    <script src=interpolate.js></script>
+-->
+    <script src=../plotting/XYGraphTool.js></script>
+    <script language="javascript">
+      var farray = new Array();
+//    var fparray = new Array();
+      var fpparray = new Array();
+      var nodes = new Array(); // mesh nodes
+      var xipts = new Array(); // canonical interpolation points
+      var n = 1;
+      var tension = 1;
+      var tension_squared = 1;
+      var w = 1;
+
+      function f( x ) { return 1 / ( 1 + 25 * x * x ); }
+      function fprime( x ) { 
+        return - 50 * x / Math.pow( 1 + 25 * x * x, 2 );
+      }
+      function fprimeprime( x ) { 
+        return 50 * ( 75 * x * x - 1 ) / Math.pow( 1 + 25 * x * x, 3 );
+      }
+
+//    function f(x) { return Math.pow( (x+1)*.5, 3 ); }
+//    function fprime(x) { return 1.5*Math.pow( (x+1)*.5, 2); }
+//    function fprimeprime(x) { return 0.75 * (x+1); }
+
+//    function f(x) { return x * x; }
+//    function fprime(x) { return 2 * x; }
+//    function fprimeprime(x) { return 2; }
+
+//    function f(x) { return (x + 1 )*.5; }
+//    function fprime(x) { return .5; }
+//    function fprimeprime(x) { return 0; }
+
+//    the following involves significant rounding error for small x:
+      function sinh( x ) { return 0.5*( Math.exp( x ) - Math.exp( -x ) ); }
+      function cosh( x ) { return 0.5*( Math.exp( x ) + Math.exp( -x ) ); }
+      function computeNodes( ) {
+        nodes = new Array( n + 1 );
+        var dx = 2 / n;
+        nodes[ 0 ] = -1;
+        for ( var i = 1; i < n; i ++ ) nodes[ i ] = i * dx - 1;
+        nodes[ n ] = 1;
+      }
+      function computeSplineSlopes() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering computeSplineSlopes\n";
+        var np1 = n + 1;
+        farray = new Array( np1 );
+        for ( var i = 0; i <= n; i ++ ) farray[ i ] = f( nodes[ i ] );
+
+        var matrix = new Array( 3 * np1 );
+        fpparray = new Array( np1 );
+        var hi = nodes[ 1 ] - nodes[ 0 ];
+        var betao = tension * cosh( tension * hi )
+          / sinh( tension * hi ) - 1 / hi;
+        var fim1 = farray[ 0 ];
+        var fi = farray[ 1 ];
+        var divdifi = ( fi - fim1 ) / hi
+        for ( var i = 1; i <= n; i ++ ) {
+          hi = nodes[ i + 1 ] - nodes[ i ];
+          matrix[ i ] = 1 / hi - tension / sinh( tension * hi );
+          matrix[ 2 * np1 + i - 1 ] = matrix[ i ];
+          var betan = tension * cosh( tension * hi )
+            / sinh( tension * hi ) - 1 / hi;
+          matrix[ np1 + i ] = betao + betan;
+          var fip1 = farray[ i + 1 ];
+          var divdif = ( fip1 - fi ) / hi;
+          fpparray[ i ] = tension_squared * ( divdif - divdifi );
+          betao = betan;
+          divdifi = divdif;
+          fim1 = fi;
+          fi = fip1;
+        }
+        for ( var i = 2; i < n; i ++ ) {
+          matrix[ i ] /= matrix[ n + i ];
+          matrix[ np1 + i ] -= matrix[ i ] * matrix[ 2 * np1 + i - 1 ];
+          fpparray[ i ] -= matrix[ i ] * fpparray[ i - 1 ];
+        }
+        fpparray[ n ] = 0;
+        fpparray[ n - 1 ] /= matrix[ 2 * n ];
+        for ( var i = n - 2; i >= 1; i -- ) {
+          fpparray[ i ] = ( fpparray[ i ]
+            - matrix[ 2 * np1 + i ] * fpparray[ i + 1 ] )
+            / matrix[ np1 + i ];
+        }
+        fpparray[ 0 ] = 0;
+//      document.getElementById("debug_textarea").value +=
+//        "leaving computeSplineSlopes\n";
+      }
+      function c2SplinePolynomial( i, xi ) {
+        var h = nodes[ i ] - nodes[ i - 1 ];
+        var th = tension * h;
+        var sum = ( farray[ i - 1 ] - fpparray[ i - 1 ] / tension_squared )
+            * ( 1 - xi )
+          + ( farray[ i ] - fpparray[ i ] / tension_squared ) * xi
+          + ( fpparray[ i - 1 ] * sinh( th * ( 1 - xi ) )
+            + fpparray[ i ] * sinh( th * xi ) )
+          / ( tension_squared * sinh( th ) );
+        return sum;
+      }
+      function onStart() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering onStart\n";
+        var interpolate_canvas =
+          document.getElementById("interpolate_canvas");
+        w = interpolate_canvas.width;
+        gt = new XYGraphTool( interpolate_canvas, "runge function",
+          "x", "f", -1, 1, 0, 1 );
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( -1, f(-1) );
+          for ( var k = 0; k <= w; k ++ ) {
+            var x = 2 * k / w - 1;
+            gt.drawLine( x, f(x) );
+          }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving onStart\n";
+      }
+      function plotCase() {
+//      document.getElementById("debug_textarea").value +=
+//        "entering plotCase\n";
+        n = Number( document.getElementById('n_textarea').value );
+        var tmax = Math.log( Number.MAX_VALUE ) *  n * .5;
+        tension
+          = Number( document.getElementById('tension_textarea').value );
+        if ( tension >= tmax ) {
+          document.getElementById("debug_textarea").value +=
+            "tension too large for mesh width;"
+            + " hyperbolic functions will overflow\n"
+            + "keep tension < " + tmax + " for " + n + " elements\n";
+          return;
+        }
+        tension_squared = tension * tension;
+//      document.getElementById("debug_textarea").value +=
+//        "tension,n = " + tension + " " + n + "\n";
+        if ( n < 1 ) return;
+        computeNodes();
+        computeSplineSlopes();
+        gt.setBgColor( "white" );
+        gt.newPage();
+        gt.setFgColor( "black" );
+        gt.drawAxes();
+        gt.setFgColor( "red" );
+        gt.beginDrawing();
+          gt.movePen( -1, f(-1) );
+          for ( var k = 0; k <= w; k ++ ) {
+            var x = 2 * k / w - 1;
+            gt.drawLine( x, f(x) );
+          }
+        gt.endDrawing();
+
+//      w = 4;
+        gt.setFgColor( "blue" );
+        gt.beginDrawing();
+        for ( var ii = 1; ii <= n; ii ++ ) {
+          var dw = w * ( nodes[ ii ] - nodes[ ii - 1 ] ) * .5;
+          var hi = nodes[ ii ] - nodes[ ii - 1 ];
+          var spline = c2SplinePolynomial( ii, 0 );
+          gt.movePen( nodes[ ii - 1 ], spline );
+          for ( var jj = 0; jj <= dw; jj ++ ) {
+            var xi = jj / dw;
+            var spline = c2SplinePolynomial( ii, xi );
+            gt.drawLine( nodes[ ii - 1 ] + xi * hi, spline );
+          }
+        }
+        gt.endDrawing();
+//      document.getElementById("debug_textarea").value +=
+//        "leaving plotCase\n";
+      }
+    </script>
+    <canvas id="interpolate_canvas" width="500" height="300">
+      Apparently, your browser does not support the HTML5
+      <code>&lt;canvas&gt;</code> element
+    </canvas>
+    <br>
+    Enter positive number of elements:
+    <input
+      type="text"
+      name="n"
+      value="2"
+      size="1"
+      id="n_textarea" >
+    <br>
+    Enter positive tension:
+    <input
+      type="text"
+      name="tension"
+      value="1"
+      size="10"
+      id="tension_textarea"
+    >
+    <br>
+    <br>
+    <input
+      type="button"
+      value="Plot spline approximation"
+      onclick="plotCase();"
+    >
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=50
+    >
+    </textarea>
+-->
+    <script language="javascript"> onStart(); </script>
+  </BODY>
+</HTML>

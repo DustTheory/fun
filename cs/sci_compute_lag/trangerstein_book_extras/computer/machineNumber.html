@@ -1,0 +1,74 @@
+<HTML>
+  <HEAD>
+    <meta charset="UTF-8">
+    <TITLE> Machine Numbers </TITLE>
+  </HEAD>
+  <BODY>
+    <h2> Machine Numbers </h2>
+    <script src=numberToHexadecimal.js></script>
+    <script language="javascript">
+    var astring = "EPSILON";
+    function machineNumber() {
+      document.getElementById("number_textarea").value="";
+      if (astring=="MAX_VALUE") {
+        var a=Number.MAX_VALUE;
+        var t=numberToHexadecimal(a);
+        document.getElementById("number_textarea").value+=
+          "Number.MAX_VALUE = " + a + " " + t + "\n";
+      } else if (astring=="MIN_VALUE") {
+        a=Number.MIN_VALUE;
+        t=numberToHexadecimal(a);
+        document.getElementById("number_textarea").value+=
+          "Number.MIN_VALUE = " + a + " " + t + "\n";
+      } else if (astring=="EPSILON") {
+        var a = 1;
+        while ( 1. + a > 1. ) {
+          a *= 0.5;
+        }
+        a *= 2.;
+        var t=numberToHexadecimal(a);
+        document.getElementById("number_textarea").value+=
+          "machine epsilon = " + a + " " + t + "\n";
+      } else {
+        var a = Number(astring);
+        var t=numberToHexadecimal(a);
+        document.getElementById("number_textarea").value+=
+          "number = " + a + " " + t + "\n";
+      }
+    }
+    </script>
+    <br>
+    Enter a number, or one of the strings
+    "MAX_VALUE", "MIN_VALUE" or "EPSILON"
+    <input
+      type="number"
+      name="aval"
+      value="EPSILON"
+      onchage="document.getElementsByName('aval')[0].value;"
+      size=10;
+    >
+    <br>
+    <input
+      type="button"
+      value="Click to see hexadecimal representation"
+      onclick="astring=document.getElementsByName('aval')[0].value; machineNumber();";
+    >
+    <br>
+    <textarea
+      id="number_textarea"
+      cols=100
+      rows=5
+    >
+    </textarea>
+<!--
+    <br>
+    <textarea
+      id="debug_textarea"
+      cols=100
+      rows=50
+    >
+    </textarea>
+-->
+    <script language="javascript"> machineNumber(); </script>
+  </BODY>
+</HTML>
