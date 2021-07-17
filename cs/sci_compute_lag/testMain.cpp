@@ -21,5 +21,4 @@ int main() {
     auto root = zero_of_polynomial(v.begin(), v.end(), 50);
     std::cout << root.getDouble() << std::endl;
     std::cout << eval_polynomial(root, v.begin(), v.end()).getDouble() << std::endl;
-
 }

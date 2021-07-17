@@ -69,7 +69,7 @@ struct Float {
         return bin >> (bMts+bExp);
     }
 
-    static std::string getBitString(uint64_t bin, uint8_t len = 64) {
+    static std::string getBitStringStatic(uint64_t bin, uint8_t len = 64) {
         std::string bs("b" + std::string(len, '0'));
         int i = len;
         while (bin) {
@@ -80,7 +80,7 @@ struct Float {
     }
 
     std::string getBitString() const {
-        return getBitString(bin);
+        return getBitStringStatic(bin);
     }
 
     void set(bool sign, uint64_t exp, uint64_t mts){
