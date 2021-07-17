@@ -21,3 +21,41 @@ Chapter 2:
 
         Truncation/rounding error:
             https://www.youtube.com/watch?v=wbxSTxhTmrs
+
+        Floating point algorithm for quadratic formula:
+             Scientific Computing, An Introductory Survey - 1.3.9
+
+
+        Need to write tests and benchmarks for:
+            For both Singles and Doubles:
+                Accounting for overflow and underflow:
+                    Float conversion
+                    Float addition
+                    Float subtraction
+                    Float Multiplication
+                    Float Division
+                    Float Comparison
+                    Float Approximate Division
+                    Float Approximate Reciprocal
+                    Float Cheat Division*
+                    Float Multiplication With Power of 2
+                    Float Square Root
+                    Float Inverse Square Root
+                    Float Inverse Square Root Approximate Reciprocal (sqrt2)
+                    Quadratic Equation Solver
+                    Qaudratic Equation Approximators
+                    Polynomial Evaluator
+                    Polynomial Derivatiation
+                    Polynomial Root Approximator
+        
+        The test harness should have:
+            Acceptable error per test
+            Actual error comparison (preferably color coded)
+            Verbose description of test name, actual value vs calculated, error and acceptable error
+            Speed evaluation and comparison between algorithms with similar purposes
+            All this should be done with variable iteration count where possible
+            Output should be nice and readable
+
+
+        
+            
