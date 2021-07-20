@@ -10,3 +10,6 @@ $(TARGET).so: $(TARGET).o
 	g++ -shared -Wl,--export-dynamic $(TARGET).o -L$(BOOST_LIB) -lboost_python38 -L/usr/lib/python$(PYTHON_VERSION)/config -lpython$(PYTHON_VERSION) -o $(TARGET).so
 $(TARGET).o: $(TARGET).C
 	g++ -I$(PYTHON_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).C
+
+clean:
+	-rm *.o *.so

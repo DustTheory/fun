@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <exception>
+#include <iostream>
 
 #include "./essential.h"
 
@@ -42,13 +43,14 @@ struct Float {
                 throw std::runtime_error("Exponent overflow converting double to Float (subnormal doubles)");
             exp = mts = 0;
         } else {
-            int maxExp = ((uint64_t)1 << (bExp-1)) - 1;
-            int minExp = -(maxExp - 1);
-            int dExpRel = dExp - 1023;
-            if (dExpRel < minExp || dExpRel > maxExp)
-                throw std::runtime_error("Exponent overflow converting double to Float");
-            exp = dExpRel + maxExp;
-            mts = (dMts >> (52-bMts)) + ((dMts >> (52-bMts-1)) & 1);
+            int dExpRel = (int)dExp - 1023;
+            if (dExpRel < minExp())
+                exp = 0, mts = 0;
+            else if (dExpRel > maxExp())
+                exp = ((uint64_t)1 << bExp) - 1, mts = 0;  // inf
+            else
+                exp = dExpRel + maxExp(),
+                mts = (dMts >> (52-bMts)) + ((dMts >> (52-bMts-1)) & 1);
         }
         set(sgn, exp, mts);
     }
@@ -104,12 +106,37 @@ struct Float {
     }
 
     double getDouble() const {
+
+        if (bSign == 1 && bExp == 11 && bMts == 52) {
+            const double* p = reinterpret_cast<const double*>(&bin);
+            return *p;
+        }
+
         bool sign = getSign();
         int64_t exp = getExp();
         uint64_t mts = getMts();
         double M = 1 + static_cast<double>(mts) / ((uint64_t)1 << bMts);
-        int64_t maxExp = ((int64_t)1 << (bExp - 1)) - 1;
-        return (sign ? -1 : 1) * pow(2, exp-maxExp) * M;
+        return (sign ? -1 : 1) * pow(2, exp-maxExp()) * M;
+    }
+
+    float getFloat() const {
+         if (bSign == 1 && bExp == 8 && bMts == 23) {
+            const float* p = reinterpret_cast<const float*>(&bin);
+            return *p;
+        }
+        return getDouble();
+    }
+
+    uint64_t maxBiasedExp() const {
+        return ((uint64_t)1 << bExp)-1;
+    }
+
+    int64_t maxExp() const {
+        return ((uint64_t)1 << (bExp-1)) - 1;
+    }
+
+    int64_t minExp() const {
+        return -(maxExp() - 1);
     }
 
     typedef Float<bSign, bExp, bMts> SameFloat;
@@ -223,10 +250,9 @@ struct Float {
         while (!(mts2 & 1)) mts2 >>= 1, tz2++;
 
         uint64_t newMts = mts1*mts2;
-        uint64_t newExp = exp1 + exp2 > 127 ? exp1 + exp2 - 127 : 0;
-        uint64_t maxExp = ((uint64_t)1 << bExp) - 2;
-        if (newExp > maxExp)
-            newExp = maxExp;
+        uint64_t newExp = exp1 + exp2 > maxExp() ? exp1 + exp2 - maxExp() : 0;
+        if (newExp > maxBiasedExp() - 1)
+            newExp = maxBiasedExp(), newMts = 0;
 
         if (((newMts >> (bMts * 2 - tz1 - tz2 + 1)) & 1))  // handle carry
             newExp++;
@@ -234,8 +260,9 @@ struct Float {
         while (newMts > (implicitMask << 1))
             newMts = (newMts>>1);
 
-        while (newMts < implicitMask)
-            newMts <<= 1;
+        if (newMts != 0)
+            while (newMts < implicitMask)
+                newMts <<= 1;
 
         // cut off the implicit bit, not handling subnormals
         newMts &= implicitMask-1;
@@ -258,18 +285,16 @@ struct Float {
         mts2 |= (uint64_t)(exp2 != 0 || mts2 == 0) << bMts;
 
         int64_t implicitMask = (int64_t)1 << bMts;
+        uint64_t lastBitMask = (int64_t)1 << 63;
+        uint64_t newExp = maxExp() + exp1 - exp2 - (mts1 < mts2);
 
-        uint64_t newExp = 127 + exp1 - exp2 - (mts1 < mts2);
-
-        // Remove and count trailing zeros
-        int tz1 = 0, tz2 = 0;
-        while (!(mts1 & 1)) mts1 >>= 1, tz1++;
-        while (!(mts2 & 1)) mts2 >>= 1, tz2++;
+        // shift left until implicit bit is msb of uint64_t
+        while (newExp > 1 && !(mts1 & lastBitMask))
+            mts1 <<= 1;
 
         uint64_t newMts = mts1/mts2;
-
         while (newMts > (implicitMask << 1))
-            newMts = (newMts>>1);
+            newMts = (newMts>>1) + (newMts & 1);
 
         if (newMts != 0)
             while (newMts < implicitMask)
@@ -296,11 +321,12 @@ struct Float {
     }
 
     static SameFloat approxReciprocal(SameFloat b, int iter = 10) {
-        SameFloat bInv(0.1);
+        SameFloat bInv(b);
         if(b.getSign()) bInv = -bInv;
         SameFloat two(2.0);
-        while (iter--)
+        while (iter--){
             bInv = bInv * (two - b*bInv);
+        }
         return bInv;
     }
 

@@ -32,3 +32,7 @@
 *.app
 
 /sci_compute_lag/trangerstein_book_extras
+
+.vscode
+/sci_compute_lag/boostpython/__pycache__
+/sci_compute_lag/boostpython/.ipynb_checkpoints
