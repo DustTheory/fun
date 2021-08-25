@@ -1,0 +1,108 @@
+INSTRUCTIONS:
+
+16 bits
+00000 AND 
+00001 OR
+00010 XOR
+00011 ADD
+00100 SUB
+00101 MLT
+00110 RESERVED
+00111 RESERVED
+
+5b opcode, 3b dest reg, 3b source reg
+
+
+01000 LOADRAM / LOAD 
+01001 LOADROM 
+5b opcode, 3b dest reg
+01010 STORE
+5b opcode, 3b source reg
+
+01011 SET
+5b opcode, 3b dest reg, 8b data
+
+01100 JMP 
+01101 JZ  
+01110 JNZ 
+01111 JC 
+10000 JNC 
+10001 JV  
+10010 JNV 
+10011 JS RESERVED 
+10100 JNS RESERVED 
+
+10101 PUSH 
+10110 PUSHREG 3b reg, 3b reg
+10111 RET
+10000 POP 3b reg, 3b reg
+
+10001 SETADDR 3b reg, 3b reg
+10010
+10011
+10100
+10101
+10110
+10111
+11000
+11001
+11010
+11011
+11100
+11101
+11110
+11111
+
+
+---------------------------------------------------------------------------------------------------
+MICROCODE:
+AREG BREG CREG ALUOP SOURCE SEL? ADDRESS/VALUE
+4    4    4    3     3      3    8
+
+ALUOP:
+000 - AND
+001 - OR
+010 - XOR
+011 - ADD
+100 - SUB
+101 - MLT
+110 - RESERVED PROBABLY FOR SHIFTR
+111 - RESERVED PROBABLY FOR SHIFTL
+
+SEL:
+000 - 0
+001 - 1
+010 - C
+011 - NOT C
+100 - Z
+101 - NOT Z
+110 - V
+111 - NOT V
+
+
+
+SOURCE:
+0 0 0 - nothing
+0 0 1 - read from ram at addr
+0 1 0 - write to ram at addr
+0 1 1 - read from device rom
+1 0 0 - read from microcode rom current address output
+
+1 0 1 - read from ram at pc 
+1 1 0 - read from rom at pc
+1 1 1 - EXECUTE INSTRUCTION IN INSTRUCTION REGISTER
+
+
+---------------------------------------------------------------
+MEMORY: 64K of ram
+last 20K reserved:
+256 bytes stack (128 16 bit addressses)
+12288 bytes video framebuffer (32x32 rgb)
+32 bytes keyboard buffer
+rest for l8r
+
+
+
+
+
+
