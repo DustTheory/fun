@@ -72,17 +72,17 @@ int main(int argc, char *argv[]) {
             }
             setBits(instruction, reg, REGISTERADDR_W, OPCODE_W);
             setBits(instruction, data, 8, OPCODE_W+REGISTERADDR_W);
-            cout << data << endl;
             break;
         case JMP:
-        case JZ:
-        case JNZ:
         case JC:
         case JNC:
+        case JZ:
+        case JNZ:
         case JV:
         case JNV:
         case JS:
         case JNS:
+            cout << op << endl;
             break;
         case PUSH:
             break;
@@ -115,6 +115,8 @@ int main(int argc, char *argv[]) {
             cout << "Error at line: " << linen << " invalid instruction keyword : " << opstr << endl;
             return 1;
         case SETLABEL:
+            break;
+        case DRAW:
             break;
 
         default:

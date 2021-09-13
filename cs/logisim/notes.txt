@@ -33,24 +33,17 @@ INSTRUCTIONS:
 10100 JNS RESERVED 
 
 10101 PUSH 
-10110 PUSHREG 3b reg, 3b reg
+10110 PUSHADDR 3b reg, 3b reg
 10111 RET
-10000 POP 3b reg, 3b reg
+10000 POP
 
-10001 SETADDR 3b reg, 3b reg
-10010
-10011
-10100
-10101
-10110
-10111
-11000
-11001
-11010
-11011
-11100
+11001 SETADDR 3b reg, 3b reg
+11010 DRAW
+11011 LOADKB
+11100 
 11101
 11110
+11111
 11111
 
 
@@ -100,6 +93,15 @@ last 20K reserved:
 12288 bytes video framebuffer (32x32 rgb)
 32 bytes keyboard buffer
 rest for l8r
+
+MEMORY MAP:
+0-45535 -> free memory
+45536-45567 -> keyboard buffer
+45568-45823 -> stack memory
+45824-58111 -> video framebuffer
+58112-65535 -> unused for now
+
+
 
 
 

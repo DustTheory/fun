@@ -30,7 +30,7 @@ enum OP {
     JS,
     JNS,
     PUSH,
-    PUSHREG,
+    PUSHADDR,
     RET,
     POP,
     NOP,
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
         {"JS", JS},
         {"JNS", JNS},
         {"PUSH", PUSH},
-        {"PUSHREG", PUSHREG},
+        {"PUSHADDR", PUSHADDR},
         {"RET", RET},
         {"POP", POP},
         {"NOP", NOP},
@@ -299,6 +299,37 @@ int main(int argc, char *argv[]) {
             cout << "JMP instruction implementation not found" << endl;
         else
             cout << "JMP instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+
+        it= labels.find("PUSH_INSTRUCTION_IMPLEMENTATION");
+        if(it == labels.end())
+            cout << "PUSH instruction implementation not found" << endl;
+        else
+            cout << "PUSH instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+
+        it= labels.find("PUSHADDR_INSTRUCTION_IMPLEMENTATION");
+        if(it == labels.end())
+            cout << "PUSHADDR instruction implementation not found" << endl;
+        else
+            cout << "PUSHADDR instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+
+        it= labels.find("RET_INSTRUCTION_IMPLEMENTATION");
+        if(it == labels.end())
+            cout << "RET instruction implementation not found" << endl;
+        else
+            cout << "RET instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+
+        it= labels.find("POP_INSTRUCTION_IMPLEMENTATION");
+        if(it == labels.end())
+            cout << "POP instruction implementation not found" << endl;
+        else
+            cout << "POP instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+        
+        it= labels.find("DRAW_INSTRUCTION_IMPLEMENTATION");
+        if(it == labels.end())
+            cout << "DRAW instruction implementation not found" << endl;
+        else
+            cout << "DRAW instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+
     }
 
     for (int i = 0; i < 256; i++) {
