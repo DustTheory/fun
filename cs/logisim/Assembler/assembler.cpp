@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
     out << "v3.0 hex bytes plain big-endian\n";
 
     while (in.peek() != EOF) {
+        linen++;
         int instruction = 0;
         getline(in, line);
         stringstream linestream(line);
@@ -34,7 +35,6 @@ int main(int argc, char *argv[]) {
         setBits(instruction, op, OPCODE_W, 0);
         int reg1, reg2, reg, data;
         switch (op) {
-            linen++;
         // Simple ALU OPs
         case AND:
         case OR:
@@ -128,7 +128,6 @@ int main(int argc, char *argv[]) {
     }
 
     for(int i = 0; i < instructions.size(); i++) {
-        cout << bitset<16>(instructions[i]) << endl;
         out << setfill('0') << setw(4) << hex << (instructions[i] & 0xffff);
     }
 
