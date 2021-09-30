@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
         case JNV:
         case JS:
         case JNS:
-            cout << op << endl;
             break;
         case PUSH:
             break;

@@ -1,7 +1,7 @@
 from PIL import Image
 import numpy
 
-image = Image.open("test1.png")
+image = Image.open("lena.png")
 image = image.resize((32,32),Image.ANTIALIAS)
 data = numpy.asarray(image)
 
@@ -31,12 +31,14 @@ f = open("lenaprogram.asm", "w")
 def addrTo8bit(addr):
     return [int(bin(addr)[2:10], 2), int(bin(addr)[10:], 2)]
 
-cnt = imagestart
+imagestart = 45824
 for i in range(imagestart, imagestart+3072):
-    [reg1, reg2] = addrTo8bit(cnt)
+    [reg1, reg2] = addrTo8bit(i)
     f.write("SET 1 "+str(reg1)+"\n")
     f.write("SET 2 "+str(reg2)+"\n")
     f.write("SET 3 "+str(int(mem[i]))+"\n")
     f.write("SETADDR 1 2\n");
     f.write("STORE 3\n")
+f.write("DRAW");
+
 

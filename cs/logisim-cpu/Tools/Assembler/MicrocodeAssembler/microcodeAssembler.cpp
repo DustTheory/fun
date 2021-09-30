@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
         // generate setaddrpla.txt file
         auto it = labels.find("SETADDR_PLA_MARKER");
         if(it != labels.end()) {
-            ofstream setaddrplafile("setaddrpla.txt", ios::out);
+            ofstream setaddrplafile("../build/setaddrpla.txt", ios::out);
             setaddrplafile << "# Logisim PLA program table\n";
             int addr = it->second.instr;
             for(int i = 0; i < 8; i++) {
