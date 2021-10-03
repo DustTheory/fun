@@ -12,10 +12,10 @@ enum InstructionOpcode {
     STORE,
     SET,
     JMP,
-    JZ,
-    JNZ,
     JC,
     JNC,
+    JZ,
+    JNZ,
     JV,
     JNV,
     JS, // JS and JNS are reserved but will probably never be implemented in hardware
@@ -87,10 +87,10 @@ class Emulator {
         STORE.bind(this),
         SET.bind(this),
         JMP.bind(this),
-        JZ.bind(this),
-        JNZ.bind(this),
         JC.bind(this),
         JNC.bind(this),
+        JZ.bind(this),
+        JNZ.bind(this),
         JV.bind(this),
         JNV.bind(this),
         null, // JS 
@@ -162,7 +162,7 @@ class Emulator {
     AluOpInstruction(instruction: number, op: (regA:  number, regB: number) => number) : void {
         let [regA, regB] = extactParamsFromSourceDestTypeInstruction(instruction);
         this.cFlag = !!((op(this.regs[regA], this.regs[regB])) >> 8);
-        this.regs[regA] = getBits(op(regA, regB), 0, 8);
+        this.regs[regA] = getBits(op(this.regs[regA], this.regs[regB]), 0, 8);
         this.zFlag = this.regs[regA] == 0;
         this.vFlag = !!((this.regs[regA] * this.regs[regB]) >> 8);
     }

@@ -36,3 +36,5 @@
 /sci_compute_lag/.vscode
 /sci_compute_lag/boostpython/__pycache__
 /sci_compute_lag/boostpython/.ipynb_checkpoints
+
+**/node_modules

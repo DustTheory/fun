@@ -13,10 +13,10 @@ var InstructionOpcode;
     InstructionOpcode[InstructionOpcode["STORE"] = 10] = "STORE";
     InstructionOpcode[InstructionOpcode["SET"] = 11] = "SET";
     InstructionOpcode[InstructionOpcode["JMP"] = 12] = "JMP";
-    InstructionOpcode[InstructionOpcode["JZ"] = 13] = "JZ";
-    InstructionOpcode[InstructionOpcode["JNZ"] = 14] = "JNZ";
-    InstructionOpcode[InstructionOpcode["JC"] = 15] = "JC";
-    InstructionOpcode[InstructionOpcode["JNC"] = 16] = "JNC";
+    InstructionOpcode[InstructionOpcode["JC"] = 13] = "JC";
+    InstructionOpcode[InstructionOpcode["JNC"] = 14] = "JNC";
+    InstructionOpcode[InstructionOpcode["JZ"] = 15] = "JZ";
+    InstructionOpcode[InstructionOpcode["JNZ"] = 16] = "JNZ";
     InstructionOpcode[InstructionOpcode["JV"] = 17] = "JV";
     InstructionOpcode[InstructionOpcode["JNV"] = 18] = "JNV";
     InstructionOpcode[InstructionOpcode["JS"] = 19] = "JS";
@@ -57,10 +57,10 @@ class Emulator {
             STORE.bind(this),
             SET.bind(this),
             JMP.bind(this),
-            JZ.bind(this),
-            JNZ.bind(this),
             JC.bind(this),
             JNC.bind(this),
+            JZ.bind(this),
+            JNZ.bind(this),
             JV.bind(this),
             JNV.bind(this),
             null,
@@ -106,7 +106,7 @@ class Emulator {
     AluOpInstruction(instruction, op) {
         let [regA, regB] = extactParamsFromSourceDestTypeInstruction(instruction);
         this.cFlag = !!((op(this.regs[regA], this.regs[regB])) >> 8);
-        this.regs[regA] = getBits(op(regA, regB), 0, 8);
+        this.regs[regA] = getBits(op(this.regs[regA], this.regs[regB]), 0, 8);
         this.zFlag = this.regs[regA] == 0;
         this.vFlag = !!((this.regs[regA] * this.regs[regB]) >> 8);
     }

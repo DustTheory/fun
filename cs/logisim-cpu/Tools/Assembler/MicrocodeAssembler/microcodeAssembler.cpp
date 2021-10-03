@@ -329,6 +329,12 @@ int main(int argc, char *argv[]) {
             cout << "DRAW instruction implementation not found" << endl;
         else
             cout << "DRAW instruction implementation address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
+       
+        it= labels.find("LOAD_THINGY");
+        if(it == labels.end())
+            cout << "LOAD_THINGY not found" << endl;
+        else
+            cout << "LOAD_THINGY address: " << it->second.instr << " hex: " << hex << it->second.instr << dec << endl;
 
     }
 

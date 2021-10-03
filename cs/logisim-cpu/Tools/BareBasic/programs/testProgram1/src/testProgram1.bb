@@ -1,0 +1,11 @@
+VAR A
+VAR B
+EXPR B = 5
+EXPR A += 3
+EXPR A += B
+IF A != 8
+EXPR A -= 3
+ELSE
+EXPR A *= 10
+ENDIF
+
