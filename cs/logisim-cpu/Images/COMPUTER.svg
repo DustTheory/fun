@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" viewBox="0 0 569 551" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <polyline fill="none" points="416,243 416,313 196,313" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="4.0"/>
+  <polyline fill="none" points="196,263 356,263 356,243" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="3.0"/>
+  <polyline fill="none" points="366,243 366,273 196,273" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="3.0"/>
+  <polyline fill="none" points="406,243 406,303 196,303" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="4.0"/>
+  <polyline fill="none" points="196,293 396,293 396,243" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="4.0"/>
+  <polyline fill="none" points="376,243 376,283 196,283" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="3.0"/>
+  <rect fill="none" height="238" rx="3.0" ry="3.0" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="1.0" width="238" x="326" y="5"/>
+  <ellipse cx="356.0" cy="243.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="376.0" cy="243.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="396.0" cy="243.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="406.0" cy="243.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="416.0" cy="243.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <polyline fill="none" points="369,242 366,239 363,242" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="2.0"/>
+  <polyline fill="none" points="332,11 557,11" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="1.0"/>
+  <polyline fill="none" points="558,11 558,236" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="1.0"/>
+  <polyline fill="none" points="558,237 333,237" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="1.0"/>
+  <polyline fill="none" points="332,237 332,12" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="1.0"/>
+  <rect fill="rgb(0, 0, 0)" height="7" stroke="none" stroke-linecap="square" stroke-width="1.0" width="7" x="333" y="12"/>
+  <polyline fill="none" points="6,253 205,253" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="2.0"/>
+  <polyline fill="none" points="206,253 206,544" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="2.0"/>
+  <polyline fill="none" points="206,545 7,545" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="2.0"/>
+  <polyline fill="none" points="6,545 6,254" stroke="rgb(0, 0, 0)" stroke-linecap="square" stroke-width="2.0"/>
+  <rect fill="rgb(0, 0, 0)" height="20" stroke="none" stroke-linecap="square" stroke-width="1.0" width="200" x="6" y="526"/>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="160.0" y="274.0" style="white-space: pre;">S_CLK</text>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="151.0" y="287.0" style="white-space: pre;">S_WRITE</text>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="152.0" y="264.0" style="white-space: pre;">S_RESET</text>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="172.0" y="297.0" style="white-space: pre;">S_X</text>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="173.0" y="307.0" style="white-space: pre;">S_Y</text>
+  <text fill="rgb(64, 64, 64)" font-family="Courier 10 Pitch" font-size="9" x="158.0" y="314.0" style="white-space: pre;">S_DATA</text>
+  <text fill="rgb(255, 255, 255)" font-family="Courier 10 Pitch" font-size="14" font-weight="bold" x="94.0" y="540.0" style="white-space: pre;">CPU</text>
+  <ellipse cx="196.0" cy="263.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="196.0" cy="273.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="196.0" cy="283.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="196.0" cy="293.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="196.0" cy="303.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <ellipse cx="196.0" cy="313.0" fill="rgb(0, 0, 0)" rx="2.0" ry="2.0" stroke="none" stroke-width="1.0"/>
+  <a xlink:href="http://cool.ishakdervisevic.com/logisim-cpu/inside1.php">
+    <desc>Look inside the cpu!</desc>
+    <title>INSIDE CPU</title>
+    <rect y="244.822" width="236.38" height="310.671" style="fill-opacity: 0; fill: rgba(216, 216, 216, 0); stroke-width: 0px;"/>
+  </a>
+</svg>
