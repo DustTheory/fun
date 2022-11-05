@@ -1,0 +1,34 @@
+SIMD beginners guide: http://const.me/articles/simd/simd.pdf
+Latency table: https://www.uops.info/table.html
+Optimizing subroutines in assembly - x86 platforms: https://www.agner.org/optimize/optimizing_assembly.pdf
+General software optimization: https://www.agner.org/optimize/
+Godbolt so I learn my assembly: https://godbolt.org/z/3kZK4P
+Steam hardware survey, see SIMD support under "Other settings": https://store.steampowered.com/hwsurvey/
+
+Intel intrinsics guide:
+https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
+Also similar: https://sseplus.sourceforge.net/fntable.html
+
+Let's start by implementing a bunch of vectorized algorithms in c++ to get better acquainted with simd instructions.
+Try to implement:
+Some basic string handling algorithms
+Vector operations
+Matrix operations
+Process large text files in some way
+Process large binary files in some way
+
+After this, will determine what to build my language around.
+Probably, just to learn simd very well, the compiler itself should abuse
+SIMD a lot even when not necessarily good to do so, just for the hell of it.
+Also the code will look pretty incomprehensible and scary which is always good.
+
+Compiler should probably be limited to working with SSE4.1 and below, but target should reqire SSE4.1
+
+String handling:
+http://0x80.pl/articles/simd-strfind.html
+
+Algorithm 1:
+Code: ./experiments/string_matching/0x80plAlgo1.cpp
+
+Ported the AVX2 code from example to SSE4 because my laptop doesn't support AVX2.
+Then added a slight change to align the buffer at a 16 byte boundary.
