@@ -1,0 +1,7 @@
+.vscode/
+
+experiments/string_matching/0x80plAlgo1
+experiments/string_matching/0x80plAlgo2
+experiments/string_matching/0x80plAlgo3
+experiments/string_matching/stringmatching
+experiments/string_matching/*.o

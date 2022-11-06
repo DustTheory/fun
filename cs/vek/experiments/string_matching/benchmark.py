@@ -23,36 +23,37 @@ def time_command(command):
 	f.close()
 	return t
 
-def time(command1, command2, command3, iters=10):
+def time(command1, command2, command3, command4, iters=10):
 	while iters < 1000000000000000000000:
 		t1 = time_command(command1.replace("__iters__", str(iters)))
 		if t1 > 1:
 			t2 = time_command(command2.replace("__iters__", str(iters)))
 			t3 = time_command(command3.replace("__iters__", str(iters)))
-			return iters, t1, t2, t3
+			t4 = time_command(command4.replace("__iters__", str(iters)))
+			return iters, t1, t2, t3, t4
 		else:
 			iters *= 10
-	return 0, 0, 0, 0
+	return 0, 0, 0, 0, 0
 
 
 def compare(filename, wordpos, word, wordlen):
 	word = word.replace("%", "%%")
 	cmd1 = './0x80plAlgo1 "%s" libc __iters__ "%s" > /dev/null' % (filename, word)
-	cmd2 = './0x80plAlgo1 "%s" impl2 __iters__ "%s" > /dev/null' % (filename, word)
-	cmd3 = './0x80plAlgo1 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
-	# cmd4 = './0x80plAlgo1 "%s" impl2 __iters__ "%s" > /dev/null' % (filename, word)
-	_, t1, t2, t3 = time(cmd1, cmd2, cmd3)
-	return "[%d,%d] libc=%0.3fs naive=%0.3fs impl1=%0.2f" % (wordpos, wordlen, t1, t2, t3)
+	cmd2 = './0x80plAlgo1 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	cmd3 = './0x80plAlgo2 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	cmd4 = './0x80plAlgo3 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	_, t1, t2, t3, t4 = time(cmd1, cmd2, cmd3, cmd4)
+	return "[%d,%d] Native=%0.3f Algorithm1=%0.3fs Algorithm2=%0.3f Algorithm3=%0.3fs" % (wordpos, wordlen, t1, t2, t3, t4)
 
 
-logname   = "0x80plAlgo1.log"
+logname   = "0x80plSIMD.log"
 lognumber = 1
 while True:
 	if not os.path.exists(logname):
 		log = open(logname, "w")
 		break
 	else:
-		logname = "0x80plAlgo1_%d.log" % lognumber
+		logname = "0x80plSIMD_%d.log" % lognumber
 		lognumber += 1
 
 try:

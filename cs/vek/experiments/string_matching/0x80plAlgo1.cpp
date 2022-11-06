@@ -66,7 +66,6 @@ const char* impl2(const char* needle, int nl, const char* haystack, int hl){
 
         int offset = 16 - ((intptr_t)haystack & 0xF);
         if(offset > nl){
-            return (char*)offset;
             const char* res = impl1(needle, nl, haystack, offset);
             if(res != NULL)
                 return res;
@@ -116,6 +115,11 @@ const char* impl2(const char* needle, int nl, const char* haystack, int hl){
 
 uint8_t buffer[1024*500 + 1];
 
+extern volatile char* libcres = NULL;
+extern volatile const char* impl1res = NULL;
+extern volatile const char* impl2res = NULL;
+
+
 int main(int argc, char** argv){
     std::string filename = std::string(argv[1]);
     std::string algorithmVersion = std::string(argv[2]);
@@ -153,20 +157,20 @@ int main(int argc, char** argv){
         case 0:
 			puts("Lib C");
             for (i=0; i < iterations; i++) {
-				volatile char* res = strstr((char*)buffer, s1);
+				libcres = strstr((char*)buffer, s1);
 			}
             break;
         
         case 1:
             puts("Impl 1");
             for (i=0; i < iterations; i++)
-				impl1(word.c_str(), word.length(), (char*)buffer, size);
+				impl1res = impl1(word.c_str(), word.length(), (char*)buffer, size);
 			break;
 
         case 2:
             puts("Impl 2");
             for (i=0; i < iterations; i++)
-				impl2(word.c_str(), word.length(), (char*)buffer, size);
+				impl2res = impl2(word.c_str(), word.length(), (char*)buffer, size);
             break;
 
         case 3:

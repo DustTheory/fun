@@ -1,0 +1,10 @@
+[53,4] Native=5.270 Algorithm1=2.210s Algorithm2=27.930 Algorithm3=2.340s
+[95,4] Native=5.590 Algorithm1=1.290s Algorithm2=12.390 Algorithm3=1.240s
+[20224,4] Native=1.360 Algorithm1=0.510s Algorithm2=4.970 Algorithm3=0.490s
+[25,5] Native=3.630 Algorithm1=0.650s Algorithm2=2.550 Algorithm3=0.820s
+[820,5] Native=1.930 Algorithm1=0.860s Algorithm2=9.970 Algorithm3=0.840s
+[196899,5] Native=4.630 Algorithm1=2.690s Algorithm2=22.650 Algorithm3=3.140s
+[4,6] Native=1.530 Algorithm1=0.520s Algorithm2=0.350 Algorithm3=0.380s
+[810,6] Native=1.490 Algorithm1=0.670s Algorithm2=8.420 Algorithm3=0.800s
+[152602,6] Native=2.860 Algorithm1=2.260s Algorithm2=18.340 Algorithm3=1.990s
+[39,7] Native=3.680 Algorithm1=0.760s Algorithm2=4.260 Algorithm3=0.670s

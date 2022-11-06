@@ -31,4 +31,35 @@ Algorithm 1:
 Code: ./experiments/string_matching/0x80plAlgo1.cpp
 
 Ported the AVX2 code from example to SSE4 because my laptop doesn't support AVX2.
-Then added a slight change to align the buffer at a 16 byte boundary.
+Then added a slight change to align the buffer at a 16 byte boundary. This did result in a slight boost.
+This implementation was significantly faster than the libc one for strings that are not too deep in the file,
+but was significantly slower for strings that are really deep in the file.
+
+Benchmark results in: ./experiments/string_matching/0x80plAlgo1.log
+
+Algorithm 2 and 3:
+Code: ./experiments/string_matching/0x80plAlgo2.cpp
+Code: ./experiments/string_matching/0x80plAlgo3.cpp
+
+Benchmarking and comparing results from all these, the second algorithm is sometimes many times
+slower than the rest, while only occasionally beating them all. The third algorithm is a
+clear improvement over the first one, simply because it's using a stronger predicate.
+Non-aligned and not unrolled versions of these were compared. Firther optimizations might
+change the rankings.
+
+Benchmark results in: ./experiments/string_matching/0x80plSIMD.log
+
+Moving on to hand crafting a general purpose very optimized string finding function.
+Code:
+    ./experiments/string_matching/stringmatching.cpp
+    ./experiments/string_matching/stringmatching.asm
+
+I'm just reimplementing:
+https://github.com/WojciechMula/sse4-strstr/blob/master/original/sse4_strstr.c
+But in hand crafted x86 asm to really get to know it.
+
+Thanks to: https://github.com/aklomp/sse-strings/
+A lot was stolen from here.
+
+First, I don't like strmcmp. I want a custom special vectorized version even at
+the cost of speed
