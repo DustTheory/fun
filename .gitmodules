@@ -1,0 +1,3 @@
+[submodule "cs/vek/experiments/string_matching/benchmark"]
+	path = cs/vek/experiments/string_matching/benchmark
+	url = https://github.com/google/benchmark
