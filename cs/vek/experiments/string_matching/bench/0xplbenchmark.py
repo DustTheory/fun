@@ -38,22 +38,22 @@ def time(command1, command2, command3, command4, iters=10):
 
 def compare(filename, wordpos, word, wordlen):
 	word = word.replace("%", "%%")
-	cmd1 = './0x80plAlgo1 "%s" libc __iters__ "%s" > /dev/null' % (filename, word)
-	cmd2 = './0x80plAlgo1 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
-	cmd3 = './0x80plAlgo2 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
-	cmd4 = './0x80plAlgo3 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	cmd1 = '../build/0x80plAlgo1 "%s" libc __iters__ "%s" > /dev/null' % (filename, word)
+	cmd2 = '../build/0x80plAlgo1 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	cmd3 = '../build/0x80plAlgo2 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
+	cmd4 = '../build/0x80plAlgo3 "%s" impl1 __iters__ "%s" > /dev/null' % (filename, word)
 	_, t1, t2, t3, t4 = time(cmd1, cmd2, cmd3, cmd4)
 	return "[%d,%d] Native=%0.3f Algorithm1=%0.3fs Algorithm2=%0.3f Algorithm3=%0.3fs" % (wordpos, wordlen, t1, t2, t3, t4)
 
 
-logname   = "0x80plSIMD.log"
+logname   = "../logs/0x80plSIMD.log"
 lognumber = 1
 while True:
 	if not os.path.exists(logname):
 		log = open(logname, "w")
 		break
 	else:
-		logname = "0x80plSIMD_%d.log" % lognumber
+		logname = "../logs/0x80plSIMD_%d.log" % lognumber
 		lognumber += 1
 
 try:
@@ -67,7 +67,7 @@ try:
 			for c in "\\`()<>{}\"":
 				word = word.replace(c, "\\" + c)
 			
-			cmd = './0x80plAlgo1 "%s" verify 1 "%s"' % (filename, word)
+			cmd = '../build/0x80plAlgo1 "%s" verify 1 "%s"' % (filename, word)
 			err = os.system(cmd)
 			if err:
 				print (repr(string[i:i+n]))

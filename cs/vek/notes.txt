@@ -61,5 +61,9 @@ But in hand crafted x86 asm to really get to know it.
 Thanks to: https://github.com/aklomp/sse-strings/
 A lot was stolen from here.
 
-First, I don't like strmcmp. I want a custom special vectorized version even at
+First, I don't like strcmp. I want a custom special vectorized version even at
 the cost of speed
+
+TODO: check out perf and valgrind
+https://perf.wiki.kernel.org/index.php/Tutorial#Introduction
+
