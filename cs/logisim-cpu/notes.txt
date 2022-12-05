@@ -101,3 +101,5 @@ MEMORY MAP:
 45824-58111 -> video framebuffer
 58112-65535 -> unused for now
 
+END OF FILE
+
